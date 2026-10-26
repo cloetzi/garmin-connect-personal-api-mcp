@@ -40,7 +40,7 @@ module GarminMcp
 
     def route(env)
       case env["PATH_INFO"]
-      when "/healthz"
+      when HealthCheck::PATH
         env["REQUEST_METHOD"] == "GET" ? json(200, status: "ok", version: VERSION) : json(405, error: "method not allowed")
       when @path
         return host_rejected(env) unless host_allowed?(env["HTTP_HOST"])

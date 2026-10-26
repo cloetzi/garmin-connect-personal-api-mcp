@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Smoke-tests a built image the way users run it: hardened container, bearer auth, Host checks, stdio.
+# Smoke-tests a built image the way users run it: hardened container, health check, bearer auth, Host checks, stdio.
 # No Garmin credentials are needed; tool calls against Garmin are not exercised.
 #
 # Usage: bin/docker-smoke-test IMAGE
@@ -35,6 +35,9 @@ done
 curl -sf "$url/healthz" | grep -q '"status":"ok"' || fail "healthz"
 pass "healthz"
 
+docker exec "$name" ruby /app/bin/healthcheck || fail "container health check"
+pass "container health check"
+
 status="$(curl -s -o /dev/null -w '%{http_code}' "${mcp_headers[@]}" "$url/mcp" -d "$list")"
 [ "$status" = 401 ] || fail "unauthenticated request returned $status"
 pass "rejects requests without a token"
@@ -58,6 +61,17 @@ pass "runs as an unprivileged user"
 docker stop -t 10 "$name" >/dev/null
 docker logs "$name" 2>&1 | grep -q "shutdown" || fail "no graceful shutdown on SIGTERM"
 pass "shuts down gracefully"
+
+docker rm "$name" >/dev/null
+docker run -d --name "$name" "${hardening[@]}" -e GARMIN_MCP_HOST=127.0.0.2 \
+  -e GARMIN_PERSONAL_API_KEY=smoke-test-key -e GARMIN_MCP_AUTH_TOKEN="$token" "$image" >/dev/null
+for _ in $(seq 1 30); do
+  docker exec "$name" ruby /app/bin/healthcheck 2>/dev/null && break
+  sleep 1
+done
+docker exec "$name" ruby /app/bin/healthcheck || fail "health check with GARMIN_MCP_HOST=127.0.0.2"
+pass "health check follows GARMIN_MCP_HOST"
+docker rm -f "$name" >/dev/null
 
 response="$(printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"smoke","version":"1"}}}' |
   docker run -i --rm "${hardening[@]}" -e GARMIN_PERSONAL_API_KEY=smoke-test-key "$image" stdio 2>/dev/null)"
