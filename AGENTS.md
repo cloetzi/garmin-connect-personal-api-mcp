@@ -18,7 +18,8 @@ Users run it from the Docker image published to GHCR. One server serves one Garm
   - `overrides.rb`, `catalog.rb`, `tool_definition.rb`: spec + overrides into tool definitions and Garmin requests
   - `garmin.rb`, `garmin/`: Garmin errors, fiber-based HTTP client, API-key-to-token exchange, authenticated client
   - `tool_runner.rb`: executes tool calls and shapes responses for the model
-  - `config.rb`, `http_app.rb`, `static_token_verifier.rb`, `application.rb`, `cli.rb`: wiring and transports
+  - `config.rb`, `http_app.rb`, `static_token_verifier.rb`, `application.rb`, `exception_reporter.rb`, `cli.rb`:
+    wiring and transports
 - `bin/`: `garmin-mcp` (server CLI), `fetch-openapi`, `spec-diff`, `healthcheck`, `docker-smoke-test`
 - `test/`: Minitest; `test/support/fake_garmin.rb` is a local fake of the Garmin API;
   `test/fixtures/tools.json` snapshots the generated tool catalog.
