@@ -7,6 +7,9 @@ module GarminMcp
   # Executes a tool call: builds the Garmin request, performs it, and shapes the result for an assistant
   # (compact JSON without nulls, capped in size). Garmin failures become tool errors the model can read,
   # never protocol errors.
+  #
+  # max_response_bytes bounds every result. JSON is truncated to it; a binary file cannot be cut, so it
+  # is sent whole as a base64 blob (4 bytes per 3) if that fits, and otherwise its download is aborted.
   class ToolRunner
     ERROR_EXCERPT_BYTES = 300
 
@@ -14,6 +17,7 @@ module GarminMcp
       @client = client
       @logger = logger
       @max_response_bytes = max_response_bytes
+      @max_file_bytes = max_response_bytes / 4 * 3
       @strip_nulls = strip_nulls
     end
 
@@ -32,15 +36,14 @@ module GarminMcp
     def call(definition, arguments)
       started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       request = definition.build_request(arguments)
-      accept = definition.binary? ? definition.operation.response_types.join(", ") : "application/json"
-      response = @client.get(request.to_s, accept:)
+      response = @client.get(request.to_s, **fetch_options(definition))
       log(definition, started, status: response.status)
       format(definition, request, response)
     rescue ToolDefinition::InvalidArguments => e
       error(e.message)
     rescue Garmin::Error => e
       log(definition, started, error: e.class.name.split("::").last)
-      error(e.message)
+      error(e.is_a?(Garmin::ResponseTooLarge) ? too_large(definition, e.limit) : e.message)
     rescue MCP::CancelledError
       raise
     rescue StandardError => e
@@ -48,6 +51,12 @@ module GarminMcp
     end
 
     private
+
+    def fetch_options(definition)
+      return { accept: "application/json" } unless definition.binary?
+
+      { accept: definition.operation.response_types.join(", "), max_body_bytes: @max_file_bytes }
+    end
 
     def format(definition, request, response)
       return failure(response) unless response.success?
@@ -73,11 +82,20 @@ module GarminMcp
       error(excerpt.empty? ? message : "#{message} Response: #{excerpt}")
     end
 
-    # Size is already bounded by the HTTP client's body cap.
+    # The HTTP client refused bodies over @max_file_bytes, so the blob fits @max_response_bytes.
     def binary(request, response)
-      blob = [response.body.b].pack("m0")
+      blob = [response.body].pack("m0")
       mime_type = response.content_type.to_s.split(";").first
       MCP::Tool::Response.new([{ type: "resource", resource: { uri: "garmin:#{request.path}", mimeType: mime_type, blob: } }])
+    end
+
+    def too_large(definition, limit)
+      if definition.binary?
+        "The file is larger than #{limit} bytes, the most this server returns in one tool result, so it was not downloaded. " \
+          "The server operator can raise the limit with GARMIN_MCP_MAX_RESPONSE_BYTES."
+      else
+        "Garmin's response is larger than #{limit} bytes, the most this server reads. Request a shorter date range or fewer results."
+      end
     end
 
     def truncate(json)

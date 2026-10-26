@@ -16,5 +16,15 @@ module GarminMcp
 
       def retryable? = @retryable
     end
+
+    # The response body is larger than allowed; reading stopped at the limit.
+    class ResponseTooLarge < Error
+      attr_reader :limit
+
+      def initialize(limit)
+        @limit = limit
+        super("Garmin response exceeds #{limit} bytes")
+      end
+    end
   end
 end

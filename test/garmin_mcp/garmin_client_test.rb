@@ -109,7 +109,18 @@ class GarminClientTest < Minitest::Test
       fake.route("GET", "/x") { [200, {}, "a" * 2048] }
       client, = build(fake, max_body_bytes: 1024)
 
-      assert_raises(GarminMcp::Garmin::Error) { client.get("/x") }
+      error = assert_raises(GarminMcp::Garmin::ResponseTooLarge) { client.get("/x") }
+      assert_equal 1024, error.limit
+    end
+  end
+
+  def test_per_request_body_limit_can_only_lower_the_cap
+    with_fake_garmin do |fake|
+      fake.route("GET", "/x") { [200, {}, "a" * 2048] }
+      client, = build(fake, max_body_bytes: 1024)
+
+      assert_equal 100, assert_raises(GarminMcp::Garmin::ResponseTooLarge) { client.get("/x", max_body_bytes: 100) }.limit
+      assert_equal 1024, assert_raises(GarminMcp::Garmin::ResponseTooLarge) { client.get("/x", max_body_bytes: 10_000) }.limit
     end
   end
 

@@ -31,11 +31,13 @@ module GarminMcp
         @client = Async::HTTP::Client.new(@endpoint)
       end
 
-      def request(method, path, headers = [])
+      # max_body_bytes lowers the body cap for this request; it never raises it.
+      def request(method, path, headers = [], max_body_bytes: nil)
         headers = [["user-agent", USER_AGENT], *headers]
+        limit = [max_body_bytes, @max_body_bytes].compact.min
         attempt = 0
         loop do
-          response = perform(method, path, headers)
+          response = perform(method, path, headers, limit)
           delay = retry_delay(response, attempt) if RETRY_STATUSES.include?(response.status)
           return response unless delay
 
@@ -55,7 +57,7 @@ module GarminMcp
 
       private
 
-      def perform(method, path, headers)
+      def perform(method, path, headers, limit)
         @semaphore.acquire do
           Async::Task.current.with_timeout(@timeout) do
             response = @client.call(Protocol::HTTP::Request[method, path, headers])
@@ -63,7 +65,7 @@ module GarminMcp
               Response.new(
                 status: response.status,
                 content_type: response.headers["content-type"],
-                body: read_body(response),
+                body: read_body(response, limit),
                 retry_after: parse_retry_after(response.headers["retry-after"])
               )
             ensure
@@ -99,14 +101,14 @@ module GarminMcp
         end
       end
 
-      def read_body(response)
+      def read_body(response, limit)
         declared = response.headers["content-length"]&.to_i
-        raise Error, "Garmin response exceeds #{@max_body_bytes} bytes" if declared && declared > @max_body_bytes
+        raise ResponseTooLarge, limit if declared && declared > limit
 
         buffer = String.new(encoding: Encoding::BINARY)
         response.body&.each do |chunk|
           buffer << chunk
-          raise Error, "Garmin response exceeds #{@max_body_bytes} bytes" if buffer.bytesize > @max_body_bytes
+          raise ResponseTooLarge, limit if buffer.bytesize > limit
         end
         buffer.force_encoding(Encoding::UTF_8)
       end
