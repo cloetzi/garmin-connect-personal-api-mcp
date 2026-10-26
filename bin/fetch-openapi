@@ -12,7 +12,11 @@ require_relative "../lib/garmin_mcp"
 output = File.expand_path("../data/openapi.json", __dir__)
 output = ARGV[ARGV.index("--output") + 1] if ARGV.include?("--output")
 
-spec, bundle_url = GarminMcp::OpenAPI::Extractor.new.fetch
+begin
+  spec, bundle_url = GarminMcp::OpenAPI::Extractor.new.fetch
+rescue GarminMcp::Error => e
+  abort "bin/fetch-openapi: #{e.message}"
+end
 File.write(output, "#{JSON.pretty_generate(spec)}\n")
 
 operations = spec["paths"].sum { |_path, item| item.count { |method, _| %w[get put post patch delete].include?(method) } }

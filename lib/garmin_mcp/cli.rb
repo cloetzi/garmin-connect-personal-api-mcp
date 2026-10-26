@@ -33,7 +33,7 @@ module GarminMcp
         warn "unknown command: #{command}\n\n#{USAGE}"
         exit 64
       end
-    rescue Config::Error, Overrides::Error, Catalog::Error, GarminMcp::Error => e
+    rescue GarminMcp::Error => e
       warn "garmin-mcp: #{e.message}"
       exit 78
     end
