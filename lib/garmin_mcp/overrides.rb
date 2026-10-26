@@ -41,14 +41,19 @@ module GarminMcp
                 }
               },
               "date_range" => {
-                "type" => "object",
-                "additionalProperties" => false,
-                "required" => %w[start end],
-                "properties" => {
-                  "start" => { "type" => "string" },
-                  "end" => { "type" => "string" },
-                  "max_days" => { "type" => "integer", "minimum" => 1 }
-                }
+                "anyOf" => [
+                  { "const" => false },
+                  {
+                    "type" => "object",
+                    "additionalProperties" => false,
+                    "dependentRequired" => { "start" => ["end"], "end" => ["start"] },
+                    "properties" => {
+                      "start" => { "type" => "string" },
+                      "end" => { "type" => "string" },
+                      "max_days" => { "type" => %w[integer null], "minimum" => 1 }
+                    }
+                  }
+                ]
               }
             }
           }
@@ -101,7 +106,8 @@ module GarminMcp
 
       document.fetch("operations", {}).each do |key, entry|
         operation = spec.operation(key) or raise Error, "#{source}: #{key} is not an operation in the OpenAPI spec"
-        names = entry.fetch("parameters", {}).keys + entry.fetch("date_range", {}).values_at("start", "end").compact
+        range = entry["date_range"].is_a?(Hash) ? entry["date_range"] : {}
+        names = entry.fetch("parameters", {}).keys + range.values_at("start", "end").compact
         names.each do |name|
           raise Error, "#{source}: #{key} has no parameter #{name}" unless operation.parameter(name)
         end
