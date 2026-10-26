@@ -25,6 +25,10 @@ module GarminMcp
     # transport: :http requires MCP authentication settings; :stdio ignores them.
     def self.from_env(env = ENV, transport: :http) = new(env, transport).freeze
 
+    # [host, port] of the HTTP listener, parsed as for the server but without reading secrets or any other setting,
+    # so the container health check stays cheap. Raises Error when either is invalid.
+    def self.listen_address(env = ENV) = allocate.send(:read_listen_address, env)
+
     def initialize(env, transport) # rubocop:disable Metrics/AbcSize -- one assignment per setting
       @env = env
       @errors = []
@@ -32,8 +36,7 @@ module GarminMcp
       @base_url = base_url_value
       @auth_disabled = boolean("GARMIN_MCP_AUTH_DISABLED", false)
       @auth_tokens = transport == :http ? auth_tokens_value : []
-      @host = string("GARMIN_MCP_HOST", "127.0.0.1")
-      @port = integer("GARMIN_MCP_PORT", 8080, 1..65_535)
+      @host, @port = listen_address_value
       @path = path_value
       @allowed_hosts = list("GARMIN_MCP_ALLOWED_HOSTS")
       @allowed_origins = list("GARMIN_MCP_ALLOWED_ORIGINS")
@@ -47,15 +50,25 @@ module GarminMcp
       @max_download_bytes = integer("GARMIN_MCP_MAX_DOWNLOAD_BYTES", 25 * 1024 * 1024, 1024..(512 * 1024 * 1024))
       @log_level = choice("GARMIN_MCP_LOG_LEVEL", "info", LOG_LEVELS)
       @log_format = choice("GARMIN_MCP_LOG_FORMAT", "text", LOG_FORMATS)
-      raise Error, "invalid configuration:\n  - #{@errors.join("\n  - ")}" if @errors.any?
-
-      remove_instance_variable(:@env)
-      remove_instance_variable(:@errors)
+      validate!
     end
 
     def inspect = "#<#{self.class.name} host=#{host} port=#{port} path=#{path} auth=#{auth_disabled ? "disabled" : "bearer"}>"
 
     private
+
+    def read_listen_address(env)
+      @env = env
+      @errors = []
+      listen_address_value.tap { validate! }
+    end
+
+    def validate!
+      raise Error, "invalid configuration:\n  - #{@errors.join("\n  - ")}" if @errors.any?
+
+      remove_instance_variable(:@env)
+      remove_instance_variable(:@errors)
+    end
 
     def secret(name, required: false)
       file_name = "#{name}_FILE"
@@ -105,9 +118,15 @@ module GarminMcp
       value
     end
 
+    def listen_address_value = [string("GARMIN_MCP_HOST", "127.0.0.1"), integer("GARMIN_MCP_PORT", 8080, 1..65_535)]
+
     def path_value
       value = string("GARMIN_MCP_PATH", "/mcp")
-      @errors << "GARMIN_MCP_PATH must start with / and contain only URL path characters" unless value.match?(%r{\A/[A-Za-z0-9/_.~-]*\z})
+      if value == HealthCheck::PATH
+        @errors << "GARMIN_MCP_PATH cannot be #{HealthCheck::PATH}, which serves health checks"
+      elsif !value.match?(%r{\A/[A-Za-z0-9/_.~-]*\z})
+        @errors << "GARMIN_MCP_PATH must start with / and contain only URL path characters"
+      end
       value
     end
 

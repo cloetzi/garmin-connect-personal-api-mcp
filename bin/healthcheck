@@ -1,8 +1,11 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-# Container health probe: stdlib only, so it starts fast and needs no curl in the image.
+# Container health probe: stdlib plus the server's own listener settings, so it starts fast, needs no curl in the
+# image and probes wherever the server actually listens.
+require "bundler/setup"
 require "net/http"
+require_relative "../lib/garmin_mcp"
 
 begin
   # In stdio mode there is no HTTP listener; the process being alive is the health signal.
@@ -12,9 +15,11 @@ rescue SystemCallError
 end
 
 begin
-  port = ENV.fetch("GARMIN_MCP_PORT", "8080")
-  response = Net::HTTP.start("127.0.0.1", port, open_timeout: 2, read_timeout: 2) { |http| http.get("/healthz") }
+  host, port = GarminMcp::HealthCheck.target
+  response = Net::HTTP.start(host, port, open_timeout: 2, read_timeout: 2) { |http| http.get(GarminMcp::HealthCheck::PATH) }
   exit(response.is_a?(Net::HTTPOK) ? 0 : 1)
-rescue StandardError
+rescue StandardError => e
+  # Shown by `docker inspect`. Connection and configuration errors name addresses and settings, never secrets.
+  warn "healthcheck failed: #{e.message}"
   exit 1
 end
