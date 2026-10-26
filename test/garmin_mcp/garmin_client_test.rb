@@ -123,6 +123,72 @@ class GarminClientTest < Minitest::Test
     end
   end
 
+  def test_replayed_exchange_failure_keeps_its_attributes
+    with_fake_garmin do |fake|
+      fake.route("POST", FakeGarmin::TOKEN_PATH) { [200, {}, "a" * 2048] }
+      now = Time.now.to_f
+      client, = build(fake, max_body_bytes: 1024, clock: -> { now })
+
+      first = assert_raises(GarminMcp::Garmin::ResponseTooLarge) { client.get("/x") }
+      replayed = assert_raises(GarminMcp::Garmin::ResponseTooLarge) { client.get("/x") }
+
+      assert_equal 1024, replayed.limit
+      assert_equal first.message, replayed.message
+      assert_equal 1, fake.requests_to(FakeGarmin::TOKEN_PATH).size
+    end
+  end
+
+  def test_unreachable_exchange_is_replayed_only_to_queued_callers
+    with_fake_garmin do |fake|
+      fake.json("/x", {})
+      now = Time.now.to_f
+      client, _, http = build(fake, max_retries: 0, clock: -> { now })
+      fail_requests(http, Errno::ECONNREFUSED)
+
+      errors = Array.new(3) { Async { assert_raises(GarminMcp::Garmin::TransportError) { client.get("/x") } } }.map(&:wait)
+
+      assert(errors.all? { |error| error.retryable? && error.message == errors.first.message })
+      assert_empty fake.requests_to(FakeGarmin::TOKEN_PATH)
+
+      now += GarminMcp::Garmin::TokenProvider::TRANSIENT_FAILURE_BACKOFF
+
+      assert_equal 200, client.get("/x").status
+      assert_equal 1, fake.requests_to(FakeGarmin::TOKEN_PATH).size
+    end
+  end
+
+  def test_timed_out_exchange_is_replayed_during_backoff
+    with_fake_garmin do |fake|
+      fake.json("/x", {})
+      now = Time.now.to_f
+      client, _, http = build(fake, clock: -> { now })
+      fail_requests(http, Async::TimeoutError)
+
+      assert_raises(GarminMcp::Garmin::TransportError) { client.get("/x") }
+      now += GarminMcp::Garmin::TokenProvider::TRANSIENT_FAILURE_BACKOFF
+      error = assert_raises(GarminMcp::Garmin::TransportError) { client.get("/x") }
+
+      refute_predicate error, :retryable?
+      assert_empty fake.requests_to(FakeGarmin::TOKEN_PATH)
+    end
+  end
+
+  def test_rejected_key_is_replayed_during_backoff
+    with_fake_garmin do |fake|
+      now = Time.now.to_f
+      client, = build(fake, api_key: "wrong", clock: -> { now })
+
+      assert_raises(GarminMcp::Garmin::AuthenticationError) { client.get("/x") }
+      now += GarminMcp::Garmin::TokenProvider::FAILURE_BACKOFF - 1
+      assert_raises(GarminMcp::Garmin::AuthenticationError) { client.get("/x") }
+      assert_equal 1, fake.requests_to(FakeGarmin::TOKEN_PATH).size
+
+      now += 1
+      assert_raises(GarminMcp::Garmin::AuthenticationError) { client.get("/x") }
+      assert_equal 2, fake.requests_to(FakeGarmin::TOKEN_PATH).size
+    end
+  end
+
   def test_rejected_key_raises_authentication_error
     with_fake_garmin do |fake|
       client, = build(fake, api_key: "wrong")
