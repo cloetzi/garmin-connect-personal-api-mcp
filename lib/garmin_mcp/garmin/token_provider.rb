@@ -12,8 +12,13 @@ module GarminMcp
       FALLBACK_TTL = 3600
       # Printable ASCII without whitespace, as it goes into a header; matched on bytes as the body may not be UTF-8.
       TOKEN_FORMAT = /\A[!-~]+\z/n
+      # Garmin also answers 401 for endpoints the key may not use, so a token this young is kept despite a 401.
+      REJECTION_MIN_AGE = 300
+      # After a failed exchange, callers get the same error for this long instead of asking Garmin again.
+      FAILURE_BACKOFF = 10
 
       Token = Data.define(:value, :issued_at, :expires_at)
+      Failure = Data.define(:error, :at)
 
       def initialize(http:, api_key:, logger:, clock: -> { Process.clock_gettime(Process::CLOCK_REALTIME) })
         @http = http
@@ -22,6 +27,7 @@ module GarminMcp
         @clock = clock
         @mutex = Mutex.new
         @token = nil
+        @failure = nil
       end
 
       # Only one fiber performs the exchange; concurrent callers wait for its result.
@@ -30,19 +36,46 @@ module GarminMcp
         return current.value if usable?(current)
 
         @mutex.synchronize do
-          @token = exchange unless usable?(@token)
+          renew unless usable?(@token)
           @token.value
         end
       end
 
-      # Drops the cached token after Garmin rejected it, unless another fiber already replaced it.
-      def invalidate(value)
-        @mutex.synchronize { @token = nil if @token&.value == value }
+      # Called after Garmin answered 401 to a request made with `value`. Returns the token to retry with, or nil
+      # when retrying cannot help because the token is too young to have expired or been revoked.
+      def rejected(value)
+        @mutex.synchronize do
+          # Another fiber already replaced the rejected token: retry with its replacement.
+          return @token.value if @token && @token.value != value && usable?(@token)
+
+          if @token&.value == value && @clock.call - @token.issued_at < REJECTION_MIN_AGE
+            @logger.info("garmin_token_kept_after_401", age: (@clock.call - @token.issued_at).round)
+            return
+          end
+
+          @logger.info("garmin_token_renewed_after_401")
+          @token = nil # a key revoked along with its token fails the exchange; do not keep using the token
+          renew.value
+        end
       end
 
       def inspect = "#<#{self.class.name}>"
 
       private
+
+      # Callers hold the mutex, so fibers queued behind a failed exchange get its error without asking Garmin again.
+      def renew
+        raise @failure.error.class, @failure.error.message if @failure && @clock.call - @failure.at < FAILURE_BACKOFF
+
+        @token = remembering_failure { exchange }
+      end
+
+      def remembering_failure
+        yield.tap { @failure = nil }
+      rescue Error => e
+        @failure = Failure.new(error: e, at: @clock.call)
+        raise
+      end
 
       def usable?(token)
         return false unless token

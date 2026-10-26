@@ -14,9 +14,10 @@ module GarminMcp
         response = @http.request("GET", path, headers(token, accept), max_body_bytes:)
         return response unless response.status == 401
 
-        # The token may have been revoked or expired early: retry once with a fresh one.
-        @tokens.invalidate(token)
-        @http.request("GET", path, headers(@tokens.token, accept), max_body_bytes:)
+        # The token may have expired early or been revoked: retry once with a fresh one, unless the token is so new
+        # that the 401 must be about this endpoint. A 401 returned to the caller thus means the key works but not here.
+        retry_token = @tokens.rejected(token) or return response
+        @http.request("GET", path, headers(retry_token, accept), max_body_bytes:)
       end
 
       private

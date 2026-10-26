@@ -72,7 +72,10 @@ module GarminMcp
 
     def failure(response)
       message = case response.status
-                when 401, 403 then "Garmin denied access to this data (HTTP #{response.status})."
+                when 401 then "Garmin refused this request (HTTP 401) although the API key is valid and its access token is " \
+                              "recent, so this data is not available to the key or account (for example, a permission or consent " \
+                              "is missing in Garmin Connect). Retrying will not help; other tools may still work."
+                when 403 then "Garmin denied access to this data (HTTP 403); the key or account is not permitted to read it."
                 when 404 then "Garmin found no data for this request (HTTP 404)."
                 when 429 then "Garmin is rate limiting requests (HTTP 429). Wait before retrying."
                 when 400..499 then "Garmin rejected the request (HTTP #{response.status})."
