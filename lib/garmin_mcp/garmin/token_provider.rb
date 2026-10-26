@@ -16,9 +16,12 @@ module GarminMcp
       REJECTION_MIN_AGE = 300
       # After a failed exchange, callers get the same error for this long instead of asking Garmin again.
       FAILURE_BACKOFF = 10
+      # A retryable transport failure (Garmin unreachable) never reached the exchange endpoint and HttpClient already
+      # retried it, so it is only replayed to the fibers queued behind it; a later call tries again.
+      TRANSIENT_FAILURE_BACKOFF = 1
 
       Token = Data.define(:value, :issued_at, :expires_at)
-      Failure = Data.define(:error, :at)
+      Failure = Data.define(:error, :retry_at)
 
       def initialize(http:, api_key:, logger:, clock: -> { Process.clock_gettime(Process::CLOCK_REALTIME) })
         @http = http
@@ -64,8 +67,9 @@ module GarminMcp
       private
 
       # Callers hold the mutex, so fibers queued behind a failed exchange get its error without asking Garmin again.
+      # The error is re-raised as is, keeping its class, attributes, cause and the backtrace of the failed exchange.
       def renew
-        raise @failure.error.class, @failure.error.message if @failure && @clock.call - @failure.at < FAILURE_BACKOFF
+        raise @failure.error if @failure && @clock.call < @failure.retry_at
 
         @token = remembering_failure { exchange }
       end
@@ -73,9 +77,11 @@ module GarminMcp
       def remembering_failure
         yield.tap { @failure = nil }
       rescue Error => e
-        @failure = Failure.new(error: e, at: @clock.call)
+        @failure = Failure.new(error: e, retry_at: @clock.call + backoff(e))
         raise
       end
+
+      def backoff(error) = error.is_a?(TransportError) && error.retryable? ? TRANSIENT_FAILURE_BACKOFF : FAILURE_BACKOFF
 
       def usable?(token)
         return false unless token

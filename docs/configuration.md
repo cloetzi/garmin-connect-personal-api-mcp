@@ -79,6 +79,8 @@ pick names from it. `check-config` lists the tools a configuration actually expo
 
 Transient Garmin failures (HTTP 429, 502, 503, 504, DNS and connection errors) are retried twice with backoff,
 honoring `Retry-After` up to 10 seconds. Timeouts and TLS failures are not retried; the tool error names the cause.
+When exchanging the API key for a token fails, tool calls in the next 10 seconds get the same error without asking
+Garmin again. DNS and connection errors are already retried, so for them this lasts only a second.
 
 ### Activity files
 
