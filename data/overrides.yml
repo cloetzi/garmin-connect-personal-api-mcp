@@ -2,11 +2,15 @@
 #
 # Every operation in the spec must have an entry here with at least a `name`; the test suite fails
 # on missing entries and on entries that no longer match the spec. See docs/overrides.md for the format.
+#
+# Date ranges are inferred from the spec; every range must state `max_days` from Garmin's documentation,
+# or `max_days: null` when Garmin states no limit.
 
 instructions: |
   Read-only access to the user's own Garmin Connect health and fitness data.
   - Dates are calendar dates in YYYY-MM-DD format, interpreted in the user's local calendar.
-  - Range tools accept a limited span (stated in each tool's description); split longer periods into several calls.
+  - Date ranges are inclusive, and the start date must not be after the end date.
+  - Some range tools accept a limited span, stated in the tool's description as "Maximum range"; split longer periods into several calls. Ranges without a stated maximum can still return large responses, so request only the period you need.
   - Unless a field name says otherwise, distances are in meters, durations in seconds and speeds in meters per second.
   - Use search_activities to find activity IDs, then get_activity for details.
   - get_user_profile_settings returns the user's measurement system, time zone and display preferences.
@@ -29,6 +33,7 @@ operations:
       limit:
         description: Maximum number of activities to return (Garmin allows up to 99). Defaults to 20 to keep responses small.
         default: 20
+    date_range: { max_days: null }
 
   GET /biometric-service/heartRateZones/v2:
     name: get_heart_rate_zones
@@ -55,6 +60,7 @@ operations:
         description: First calendar date of the range (YYYY-MM-DD), inclusive.
       endDate:
         description: Last calendar date of the range (YYYY-MM-DD), inclusive.
+    date_range: { max_days: null }
 
   GET /hrv-service/hrv/{calendarDate}:
     name: get_daily_hrv
@@ -73,6 +79,7 @@ operations:
         description: First calendar date of the range (YYYY-MM-DD), inclusive.
       toDate:
         description: Last calendar date of the range (YYYY-MM-DD), inclusive.
+    date_range: { max_days: null }
 
   GET /nutrition-service/food/logs/{date}:
     name: get_daily_food_logs
@@ -93,6 +100,7 @@ operations:
       todayDate:
         description: Today's calendar date (YYYY-MM-DD) from the user's perspective, used as the reference point for predictions.
         required: true
+    date_range: false                    # two dates, but not a range
 
   GET /sleep-service/sleep/dailySleep:
     name: get_daily_sleep
@@ -113,7 +121,7 @@ operations:
       endDate:
         description: Last calendar date of the range (YYYY-MM-DD), inclusive.
         required: true
-    date_range: { start: startDate, end: endDate, max_days: 31 }
+    date_range: { max_days: 31 }
 
   GET /userprofile-service/userprofile/settings:
     name: get_user_profile_settings
@@ -128,7 +136,7 @@ operations:
         description: First calendar date of the range (YYYY-MM-DD), inclusive.
       endDate:
         description: Last calendar date of the range (YYYY-MM-DD), inclusive.
-    date_range: { start: startDate, end: endDate, max_days: 31 }
+    date_range: { max_days: 31 }
 
   GET /usersummary-service/stats/steps/daily/{startDate}/{endDate}:
     name: get_daily_steps
@@ -138,7 +146,7 @@ operations:
         description: First calendar date of the range (YYYY-MM-DD), inclusive.
       endDate:
         description: Last calendar date of the range (YYYY-MM-DD), inclusive.
-    date_range: { start: startDate, end: endDate, max_days: 28 }
+    date_range: { max_days: 28 }
 
   GET /usersummary-service/stats/stress/daily/{startDate}/{endDate}:
     name: get_daily_stress
@@ -148,7 +156,7 @@ operations:
         description: First calendar date of the range (YYYY-MM-DD), inclusive.
       endDate:
         description: Last calendar date of the range (YYYY-MM-DD), inclusive.
-    date_range: { start: startDate, end: endDate, max_days: 28 }
+    date_range: { max_days: 28 }
 
   GET /usersummary-service/usersummary/daily:
     name: get_daily_user_summary
@@ -169,16 +177,18 @@ operations:
       endDate:
         description: Last calendar date of the range (YYYY-MM-DD), inclusive.
         required: true
-    date_range: { start: startDate, end: endDate, max_days: 366 }
+    date_range: { max_days: 366 }
 
   GET /weight-service/weight/all/{startDate}/{endDate}:
     name: get_weight_entries
     title: All weight entries
     description_append: Prefer get_weight_measurements when daily values or the range average are enough.
+    date_range: { max_days: null }
 
   GET /weight-service/weight/range/{startDate}/{endDate}:
     name: get_weight_measurements
     title: Weight summaries
+    date_range: { max_days: null }
 
   GET /wellness-service/wellness/bodyBattery/reports/daily:
     name: get_daily_body_battery
@@ -190,7 +200,7 @@ operations:
       endDate:
         description: Last calendar date of the range (YYYY-MM-DD), inclusive.
         required: true
-    date_range: { start: startDate, end: endDate, max_days: 31 }
+    date_range: { max_days: 31 }
 
   GET /wellness-service/wellness/daily/spo2acclimation/{calendarDate}:
     name: get_daily_spo2
@@ -217,3 +227,4 @@ operations:
         description: First calendar date of the range (YYYY-MM-DD), inclusive.
       untilDate:
         description: Last calendar date of the range (YYYY-MM-DD), inclusive.
+    date_range: { max_days: null }

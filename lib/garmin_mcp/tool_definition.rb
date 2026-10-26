@@ -15,6 +15,9 @@ module GarminMcp
       def to_s = query.empty? ? path : "#{path}?#{query}"
     end
 
+    # Inclusive range between two date parameters, named by start and end; max_days is nil when Garmin states no limit.
+    DateRange = Data.define(:start, :end, :max_days)
+
     DATE_PATTERN = "^\\d{4}-\\d{2}-\\d{2}$"
     SCHEMA_KEYS = %w[type format enum items minimum maximum].freeze
 
@@ -88,15 +91,12 @@ module GarminMcp
     end
 
     def check_date_range!(dates)
-      return unless date_range
-
-      first = dates[date_range["start"]]
-      last = dates[date_range["end"]]
+      first, last = date_range && dates.values_at(date_range.start, date_range.end)
       return unless first && last
 
-      raise InvalidArguments, "#{date_range["start"]} must not be after #{date_range["end"]}" if first > last
+      raise InvalidArguments, "#{date_range.start} must not be after #{date_range.end}" if first > last
 
-      max_days = date_range["max_days"]
+      max_days = date_range.max_days
       return unless max_days && (last - first).to_i + 1 > max_days
 
       raise InvalidArguments, "the date range may span at most #{max_days} days; split the request into smaller ranges"

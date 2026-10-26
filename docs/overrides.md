@@ -9,7 +9,8 @@ thin, so [`data/overrides.yml`](../data/overrides.yml) refines it for assistants
 - better **descriptions** for tools and parameters,
 - **required** flags the spec leaves out,
 - **defaults** that keep responses small,
-- **date range limits** that are checked before Garmin is called, so the assistant gets a clear error.
+- **date range limits** that are checked before Garmin is called, so the assistant gets a clear error
+  (see [Date ranges](#date-ranges)).
 
 You can layer your own file on top with `GARMIN_MCP_OVERRIDES_FILE`, for example to reword a description for
 your assistant. User overrides are merged per operation and per parameter.
@@ -38,13 +39,30 @@ operations:
     parameters:
       limit:
         default: 20                      # sent to Garmin when the argument is omitted (quote date strings)
-    date_range:                          # validated before calling Garmin
-      start: startDate
-      end: endDate
-      max_days: 31                       # also stated in the tool description
+    date_range:
+      max_days: null                     # Garmin states no limit; see "Date ranges" below
 ```
 
-All keys are optional except that the bundled file must name every operation.
+All keys are optional except that the bundled file must name every operation and classify every date range.
+
+## Date ranges
+
+Range checks run before Garmin is called, so a bad range gets a clear error instead of an opaque 400 or a huge
+response. The pair of parameters is inferred from the spec: two `format: date` parameters whose names differ only
+in a leading `start`/`from` and `end`/`to`/`until` (`startDate`/`endDate`, `fromDate`/`toDate`,
+`fromDate`/`untilDate`). For every range, the start must not be after the end. `date_range` only adds to that:
+
+```yaml
+date_range: { max_days: 31 }          # Garmin documents a limit; checked and stated in the tool description
+date_range: { max_days: null }        # Garmin states no limit; only the order is checked
+date_range: { start: beginDate, end: finishDate, max_days: 7 }   # name a pair the inference misses
+date_range: false                     # two dates that are not a range: no range checks
+```
+
+Only set `max_days` to a limit Garmin states; a test checks it against the spec's "up to a maximum of N days"
+wording. The bundled file must classify every operation with an inferred range (`max_days`, even if `null`) and
+every other operation with two or more date or date-time parameters (a named pair or `false`), so a new range
+endpoint fails the test suite until someone has looked at its limit.
 
 ## Validation
 

@@ -45,6 +45,21 @@ class ToolDefinitionTest < Minitest::Test
     definition.build_request(startDate: "2026-01-01", endDate: "2026-01-28")
   end
 
+  def test_checks_order_of_ranges_without_a_limit
+    definition = tool("get_daily_hrv_summaries")
+
+    error = assert_raises(InvalidArguments) { definition.build_request(fromDate: "2026-10-02", toDate: "2026-10-01") }
+    assert_equal "fromDate must not be after toDate", error.message
+    definition.build_request(fromDate: "2016-01-01", toDate: "2026-10-01")
+  end
+
+  def test_checks_order_of_optional_query_ranges
+    definition = tool("search_activities")
+
+    assert_raises(InvalidArguments) { definition.build_request(startDate: "2026-10-02", endDate: "2026-10-01") }
+    definition.build_request(startDate: "2026-10-02")
+  end
+
   def test_input_schema
     schema = tool("get_daily_sleep").input_schema
 

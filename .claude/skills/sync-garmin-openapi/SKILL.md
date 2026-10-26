@@ -40,8 +40,11 @@ Run `bundle exec rake test` and fix what it reports in `data/overrides.yml` (for
   the existing ones (`get_daily_*` for single days, `*_summaries` for ranges; match Garmin's official Python client
   https://github.com/garmin/connect-personal-api-python when it has the endpoint), a short `title`, and refinements
   where the spec is thin: parameter descriptions with the date format, `required: true` for parameters the endpoint
-  needs, and `date_range` with `max_days` when the description states a limit. Keep a new endpoint enabled unless it
-  returns binary data or is otherwise useless to an assistant.
+  needs. Keep a new endpoint enabled unless it returns binary data or is otherwise useless to an assistant.
+- **Date ranges** (fails `test_every_date_range_is_classified` or `test_range_limits_match_the_spec`): give the
+  operation a `date_range` (see "Date ranges" in `docs/overrides.md`). Set `max_days` only to a limit the spec
+  states, otherwise `max_days: null`; name the pair if the inference missed it, or use `false` for dates that are
+  not a range. Never invent a limit.
 - **Removed operation or parameter** (fails at load with "is not an operation" / "has no parameter"): delete the
   stale entry.
 - **Changed descriptions**: if Garmin improved a description, drop the override that replaced it; keep overrides

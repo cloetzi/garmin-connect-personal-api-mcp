@@ -5,6 +5,11 @@ module GarminMcp
   class Catalog
     class Error < GarminMcp::Error; end
 
+    # Date parameter names that pair into a range when the rest of the name matches,
+    # e.g. startDate/endDate, fromDate/toDate, fromDate/untilDate.
+    RANGE_START = /\A(?:start|from)(?<rest>.*)\z/
+    RANGE_END = /\A(?:end|to|until)(?<rest>.*)\z/
+
     attr_reader :spec, :overrides, :tools
 
     def initialize(spec, overrides)
@@ -43,6 +48,15 @@ module GarminMcp
       [operation.http_method, *words].join("_")[0, 64]
     end
 
+    # The start and end parameter names of the operation's date range, or nil unless exactly one pair matches.
+    def self.inferred_range(operation)
+      dates = operation.parameters.select { |param| param.schema["format"] == "date" }.map(&:name)
+      pairs = dates.product(dates).select do |start, finish|
+        (rest = RANGE_START.match(start)&.[](:rest)) && RANGE_END.match(finish)&.[](:rest) == rest
+      end
+      pairs.first if pairs.one?
+    end
+
     private
 
     def matches?(tool, names) = names.include?(tool.name) || names.include?(tool.service)
@@ -50,22 +64,38 @@ module GarminMcp
     def build(operation)
       entry = overrides.for(operation)
       param_overrides = entry.fetch("parameters", {})
+      date_range = date_range(operation, entry.fetch("date_range", {}))
       ToolDefinition.new(
         name: entry.fetch("name") { self.class.derived_name(operation) },
         title: entry["title"] || operation.summary,
-        description: description(operation, entry),
+        description: description(operation, entry, date_range),
         operation:,
         params: operation.parameters.map { |param| build_param(operation, param, param_overrides.fetch(param.name, {})) },
         enabled: entry.fetch("enabled", true),
-        date_range: entry["date_range"]
+        date_range:
       )
     end
 
-    def description(operation, entry)
+    # Inferred from the spec unless the override names the pair; `false` opts out of range checks.
+    def date_range(operation, setting)
+      return if setting == false
+
+      start, finish = setting.key?("start") ? setting.values_at("start", "end") : self.class.inferred_range(operation)
+      unless start
+        raise Error, "#{operation.key}: date_range needs start and end, no date parameter pair was inferred" if setting.any?
+
+        return
+      end
+      [start, finish].each do |name|
+        raise Error, "#{operation.key}: date_range parameter #{name} is not a date" unless operation.parameter(name).schema["format"] == "date"
+      end
+      ToolDefinition::DateRange.new(start:, end: finish, max_days: setting["max_days"])
+    end
+
+    def description(operation, entry, date_range)
       text = entry["description"] || operation.description || operation.summary || "Calls #{operation.key}."
       text = "#{text.strip} #{entry["description_append"].strip}" if entry["description_append"]
-      max_days = entry.dig("date_range", "max_days")
-      text = "#{text} Maximum range: #{max_days} days, inclusive." if max_days
+      text = "#{text} Maximum range: #{date_range.max_days} days, inclusive." if date_range&.max_days
       text
     end
 

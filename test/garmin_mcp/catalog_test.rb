@@ -14,6 +14,66 @@ class CatalogTest < Minitest::Test
     assert_empty missing, "add names for these operations to data/overrides.yml"
   end
 
+  # Range checks are inferred from the spec, but a new endpoint with dates must still be looked at: its span
+  # limit (`max_days`, or null when Garmin states none) recorded, or the pair named, or `date_range: false`.
+  def test_every_date_range_is_classified
+    unclassified = catalog.tools.reject do |tool|
+      setting = catalog.overrides.for(tool.operation)["date_range"]
+      dates = tool.operation.parameters.count { |param| %w[date date-time].include?(param.schema["format"]) }
+      tool.date_range ? setting.is_a?(Hash) && setting.key?("max_days") : dates < 2 || setting == false
+    end
+
+    assert_empty unclassified.map(&:operation).map(&:key), "classify these operations' date_range in data/overrides.yml"
+  end
+
+  # Span limits come from Garmin's documentation only, so they cannot drift from it or be invented.
+  def test_range_limits_match_the_spec
+    stated = catalog.tools.to_h do |tool|
+      count, unit = tool.operation.description.to_s.match(/maximum of (\d+) (day|year)s?\b/)&.captures
+      [tool.name, count && (unit == "year" ? Integer(count) * 366 : Integer(count))]
+    end
+
+    assert_equal stated, catalog.tools.to_h { |tool| [tool.name, tool.date_range&.max_days] }, "max_days must match the spec descriptions"
+  end
+
+  def test_infers_date_ranges_from_the_spec
+    ranges = catalog.tools.to_h { |tool| [tool.name, tool.date_range&.then { |range| [range.start, range.end] }] }
+
+    assert_equal %w[fromDate toDate], ranges["get_daily_hrv_summaries"]
+    assert_equal %w[fromDate untilDate], ranges["get_wellness_activity_summaries"]
+    assert_equal %w[startDate endDate], ranges["search_activities"]
+    assert_nil ranges["get_menstrual_cycle_day_view"], "calendarDate and todayDate are not a range"
+    assert_nil ranges["get_daily_sleep"]
+  end
+
+  def test_date_range_overrides
+    path = write_tempfile("overrides.yml", <<~YAML)
+      operations:
+        GET /periodichealth-service/menstrualcycle/dayview/{calendarDate}:
+          date_range: { start: calendarDate, end: todayDate, max_days: 7 }
+        GET /hrv-service/hrv/daily/{fromDate}/{toDate}:
+          date_range: false
+    YAML
+    tools = GarminMcp::Application.catalog(overrides_file: path).tools.to_h { |tool| [tool.name, tool] }
+
+    assert_equal GarminMcp::ToolDefinition::DateRange.new(start: "calendarDate", end: "todayDate", max_days: 7),
+                 tools["get_menstrual_cycle_day_view"].date_range
+    assert_match(/Maximum range: 7 days/, tools["get_menstrual_cycle_day_view"].description)
+    assert_nil tools["get_daily_hrv_summaries"].date_range
+  end
+
+  def test_date_range_overrides_must_fit_the_operation
+    {
+      "GET /sleep-service/sleep/dailySleep:\n    date_range: { max_days: 7 }" => /no date parameter pair/,
+      "GET /sleep-service/sleep/dailySleepSummariesByDate:\n    date_range: { start: startDate }" => /invalid overrides/,
+      "GET /wellness-service/wellness/bodyBattery/reports/daily:\n    date_range: { start: startDate, end: chunks }" => /chunks is not a date/
+    }.each do |entry, message|
+      path = write_tempfile("overrides.yml", "operations:\n  #{entry}\n")
+      error = assert_raises(GarminMcp::Error) { GarminMcp::Application.catalog(overrides_file: path) }
+      assert_match message, error.message
+    end
+  end
+
   def test_spec_is_read_only
     assert_equal ["get"], spec.operations.map(&:http_method).uniq
   end
