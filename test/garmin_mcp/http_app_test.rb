@@ -5,8 +5,8 @@ require "rack/mock"
 
 # Exercises the full stack below Falcon: Rack app, SDK transport, tools, Garmin client.
 class HttpAppTest < Minitest::Test
-  def app(fake, **values)
-    @application = GarminMcp::Application.new(GarminMcp::Config.from_env(env(fake, **values)), logger: null_logger)
+  def app(fake, logger: null_logger, **values)
+    @application = GarminMcp::Application.new(GarminMcp::Config.from_env(env(fake, **values)), logger:)
     Rack::MockRequest.new(@application.rack_app)
   end
 
@@ -15,7 +15,7 @@ class HttpAppTest < Minitest::Test
   def rpc(app, method, params = nil, token: TestHelpers::AUTH_TOKEN, host: "localhost:8080", **headers)
     body = JSON.generate({ jsonrpc: "2.0", id: 1, method:, params: }.compact)
     headers = { "CONTENT_TYPE" => "application/json", "HTTP_ACCEPT" => "application/json, text/event-stream",
-                "HTTP_MCP_PROTOCOL_VERSION" => "2025-11-25", "HTTP_HOST" => host, **headers.transform_keys(&:to_s) }
+                "HTTP_MCP_PROTOCOL_VERSION" => "2025-11-25", "HTTP_HOST" => host, **headers.transform_keys(&:to_s) }.compact
     headers["HTTP_AUTHORIZATION"] = "Bearer #{token}" if token
     app.post("/mcp", input: body, **headers)
   end
@@ -58,6 +58,32 @@ class HttpAppTest < Minitest::Test
       assert_equal 200, rpc(app, "tools/list", host: "mcp.lan:8080").status
       assert_equal 200, rpc(app, "tools/list", host: "[::1]:8080").status
       assert_equal 403, rpc(app, "tools/list", HTTP_ORIGIN: "https://evil.example").status
+      assert_equal 200, rpc(app, "tools/list", HTTP_ORIGIN: "http://localhost:8080").status
+      assert_equal 200, rpc(app, "tools/list", host: nil).status
+    end
+  end
+
+  def test_wildcard_hosts_still_reject_foreign_origins
+    with_fake_garmin do |fake|
+      app = app(fake, GARMIN_MCP_ALLOWED_HOSTS: "*", GARMIN_MCP_ALLOWED_ORIGINS: "https://app.example",
+                      GARMIN_MCP_AUTH_TOKEN: nil, GARMIN_MCP_AUTH_DISABLED: "true")
+
+      assert_equal 200, rpc(app, "tools/list", token: nil, host: "mcp.example").status
+      assert_equal 403, rpc(app, "tools/list", token: nil, host: "mcp.example", HTTP_ORIGIN: "https://evil.example").status
+      assert_equal 200, rpc(app, "tools/list", token: nil, host: "mcp.example", HTTP_ORIGIN: "https://app.example").status
+    end
+  end
+
+  def test_rejections_are_logged_with_a_hint
+    with_fake_garmin do |fake|
+      io = StringIO.new
+      app = app(fake, logger: GarminMcp::Logger.new(io:, level: "warn"))
+
+      assert_equal "host not allowed", JSON.parse(rpc(app, "tools/list", host: "evil.example").body)["error"]
+      assert_equal "origin not allowed", JSON.parse(rpc(app, "tools/list", HTTP_ORIGIN: "https://evil.example").body)["error"]
+      assert_match(/host_rejected host=evil.example hint="add the host to GARMIN_MCP_ALLOWED_HOSTS"/, io.string)
+      assert_match(%r{origin_rejected origin=https://evil.example hint="add the origin to GARMIN_MCP_ALLOWED_ORIGINS"}, io.string)
+      refute_includes io.string, TestHelpers::AUTH_TOKEN
     end
   end
 

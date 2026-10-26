@@ -34,8 +34,21 @@ The stdio transport never uses MCP authentication: it only talks to the process 
 | `GARMIN_MCP_HOST` | `127.0.0.1` (image: `0.0.0.0`) | Address to listen on. The image's health check probes this address, or loopback (`127.0.0.1` or `::1`) when it is `0.0.0.0` or `::`. |
 | `GARMIN_MCP_PORT` | `8080` | Port to listen on. |
 | `GARMIN_MCP_PATH` | `/mcp` | Path of the MCP endpoint. `/healthz` is always served for health checks, so it cannot be used. |
-| `GARMIN_MCP_ALLOWED_HOSTS` | | Comma-separated `Host` header values accepted in addition to `localhost`, `127.0.0.1` and `::1`. Entries are a host name (any port) or `host:port`. `*` disables the check. Requests with other hosts are rejected (protection against DNS rebinding) and logged with a hint. |
-| `GARMIN_MCP_ALLOWED_ORIGINS` | | Comma-separated `Origin` values accepted from browser-based clients, in addition to same-origin requests. |
+| `GARMIN_MCP_ALLOWED_HOSTS` | | Comma-separated `Host` header values accepted in addition to `localhost`, `127.0.0.1` and `::1`. Entries are a host name (any port) or `host:port` (an IPv6 address without brackets matches any port). `*` accepts any host and disables only this check: `Origin` is still validated. |
+| `GARMIN_MCP_ALLOWED_ORIGINS` | | Comma-separated `Origin` values accepted from browser-based clients in addition to same-origin requests, written as `scheme://host[:port]` (e.g. `https://app.example.com`) and matched exactly, ignoring case. |
+
+Requests to the MCP endpoint are checked before authentication, and rejected ones are answered with HTTP 403
+and logged with a hint naming the variable to change:
+
+- The `Host` header must be allowed (protection against DNS rebinding). Requests without one are accepted;
+  browsers always send it.
+- The `Origin` header, when present, must be same-origin (its host and port equal the `Host` header; the scheme
+  is not compared, so this also works behind a TLS-terminating proxy) or listed in `GARMIN_MCP_ALLOWED_ORIGINS`.
+  Requests without one come from non-browser clients and are accepted.
+
+With `GARMIN_MCP_ALLOWED_HOSTS=*`, a page served from a name that resolves to the server counts as same-origin,
+so DNS rebinding is no longer prevented; use it only when a reverse proxy in front already restricts the host
+names it forwards.
 
 The server speaks plain HTTP. Terminate TLS in a reverse proxy if clients connect over a network you do not
 trust.
