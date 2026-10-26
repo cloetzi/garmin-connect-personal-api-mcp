@@ -33,15 +33,93 @@ class GarminClientTest < Minitest::Test
     end
   end
 
-  def test_refreshes_token_once_after_unauthorized
+  def test_replaces_expired_token_once_after_unauthorized
     with_fake_garmin do |fake|
-      calls = 0
-      fake.route("GET", "/x") { (calls += 1) == 1 ? [401, {}, ""] : [200, { "content-type" => "application/json" }, "{}"] }
-      client, = build(fake)
+      fake.route("GET", "/x") { |request| first_token?(request) ? [401, {}, ""] : [200, {}, "{}"] }
+      now = Time.now.to_f
+      client, = build(fake, clock: -> { now })
+      client.get("/y")
+      now += GarminMcp::Garmin::TokenProvider::REJECTION_MIN_AGE + 1
 
       assert_equal 200, client.get("/x").status
+      assert_equal 200, client.get("/x").status
       assert_equal 2, fake.requests_to(FakeGarmin::TOKEN_PATH).size
-      refute_equal(*fake.requests_to("/x").map { |request| request.headers["authorization"] })
+      assert_equal 3, fake.requests_to("/x").size
+    end
+  end
+
+  def test_unauthorized_endpoint_does_not_replace_a_recent_token
+    with_fake_garmin do |fake|
+      fake.route("GET", "/denied") { [401, {}, ""] }
+      fake.json("/x", {})
+      client, = build(fake)
+
+      3.times { assert_equal 401, client.get("/denied").status }
+      assert_equal 200, client.get("/x").status
+      assert_equal 1, fake.requests_to(FakeGarmin::TOKEN_PATH).size
+      assert_equal 3, fake.requests_to("/denied").size
+    end
+  end
+
+  def test_unauthorized_endpoint_replaces_an_old_token_only_once
+    with_fake_garmin do |fake|
+      fake.route("GET", "/denied") { [401, {}, ""] }
+      now = Time.now.to_f
+      client, = build(fake, clock: -> { now })
+      client.get("/y")
+      now += GarminMcp::Garmin::TokenProvider::REJECTION_MIN_AGE + 1
+
+      3.times { assert_equal 401, client.get("/denied").status }
+      assert_equal 2, fake.requests_to(FakeGarmin::TOKEN_PATH).size
+      assert_equal 4, fake.requests_to("/denied").size
+    end
+  end
+
+  def test_concurrent_unauthorized_calls_share_one_replacement
+    with_fake_garmin do |fake|
+      fake.route("GET", "/x") { |request| first_token?(request) ? [401, {}, ""] : [200, {}, "{}"] }
+      now = Time.now.to_f
+      client, = build(fake, clock: -> { now })
+      client.get("/y")
+      now += GarminMcp::Garmin::TokenProvider::REJECTION_MIN_AGE + 1
+
+      statuses = Array.new(5) { Async { client.get("/x").status } }.map(&:wait)
+
+      assert_equal [200] * 5, statuses
+      assert_equal 2, fake.requests_to(FakeGarmin::TOKEN_PATH).size
+    end
+  end
+
+  def test_revoked_key_reports_authentication_error_after_unauthorized
+    with_fake_garmin do |fake|
+      revoked = false
+      fake.route("GET", "/x") { revoked ? [401, {}, ""] : [200, {}, "{}"] }
+      fake.route("POST", FakeGarmin::TOKEN_PATH) { revoked ? [401, {}, ""] : [200, {}, FakeGarmin.jwt(exp: Time.now.to_i + 86_400)] }
+      now = Time.now.to_f
+      client, = build(fake, clock: -> { now })
+      client.get("/x")
+      now += GarminMcp::Garmin::TokenProvider::REJECTION_MIN_AGE + 1
+      revoked = true
+
+      2.times { assert_raises(GarminMcp::Garmin::AuthenticationError) { client.get("/x") } }
+      assert_equal 2, fake.requests_to(FakeGarmin::TOKEN_PATH).size, "the second call is inside the failure backoff"
+    end
+  end
+
+  def test_failed_exchange_is_not_repeated_during_backoff
+    with_fake_garmin do |fake|
+      fake.route("POST", FakeGarmin::TOKEN_PATH) { [500, {}, ""] }
+      now = Time.now.to_f
+      client, = build(fake, clock: -> { now })
+
+      tasks = Array.new(3) { Async { assert_raises(GarminMcp::Garmin::Error) { client.get("/x") } } }
+      tasks.each(&:wait)
+
+      assert_equal 1, fake.requests_to(FakeGarmin::TOKEN_PATH).size
+
+      now += GarminMcp::Garmin::TokenProvider::FAILURE_BACKOFF
+      assert_raises(GarminMcp::Garmin::Error) { client.get("/x") }
+      assert_equal 2, fake.requests_to(FakeGarmin::TOKEN_PATH).size
     end
   end
 
@@ -217,4 +295,8 @@ class GarminClientTest < Minitest::Test
       assert_equal "garmin-connect-personal-api-mcp/#{GarminMcp::VERSION}", fake.requests_to("/x").first.headers["user-agent"]
     end
   end
+
+  private
+
+  def first_token?(request) = request.headers["authorization"].end_with?(".1")
 end
