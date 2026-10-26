@@ -44,6 +44,18 @@ class ConfigTest < Minitest::Test
     assert_empty config(transport: :stdio, GARMIN_MCP_AUTH_TOKEN: nil).auth_tokens
   end
 
+  def test_credentials_can_be_skipped
+    config = Config.from_env({}, credentials: false)
+
+    assert_nil config.api_key
+    assert_empty config.auth_tokens
+  end
+
+  def test_empty_overrides_file_is_unset
+    assert_nil config(GARMIN_MCP_OVERRIDES_FILE: " ").overrides_file
+    assert_config_error(%r{GARMIN_MCP_OVERRIDES_FILE: cannot read /nonexistent}, GARMIN_MCP_OVERRIDES_FILE: "/nonexistent")
+  end
+
   def test_short_tokens_are_rejected
     assert_config_error(/at least 32 characters/, GARMIN_MCP_AUTH_TOKEN: "short")
   end

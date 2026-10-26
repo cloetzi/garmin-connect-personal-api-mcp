@@ -13,7 +13,7 @@ module GarminMcp
         stdio         Serve MCP over stdin/stdout
         check-config [http|stdio]
                       Validate configuration and overrides for a transport (default http), then exit
-        tools         Print the tool catalog as JSON (no credentials needed)
+        tools         Print every tool, including disabled ones, as JSON (no credentials needed)
         version       Print the version
 
       Configuration is read from environment variables; see docs/configuration.md.
@@ -85,8 +85,11 @@ module GarminMcp
       config.auth_disabled ? "DISABLED" : "bearer token"
     end
 
+    # The whole catalog with GARMIN_MCP_OVERRIDES_FILE applied, to choose GARMIN_MCP_TOOLS from;
+    # check-config shows what a configuration exposes.
     def print_tools
-      puts JSON.pretty_generate(Application.catalog(overrides_file: ENV.fetch("GARMIN_MCP_OVERRIDES_FILE", nil)).manifest)
+      config = Config.from_env(credentials: false)
+      puts JSON.pretty_generate(Application.catalog(overrides_file: config.overrides_file).manifest)
     end
 
     # Load all code up front so nothing autoloads inside request fibers and load errors surface at startup.

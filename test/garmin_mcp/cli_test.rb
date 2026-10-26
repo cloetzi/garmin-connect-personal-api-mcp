@@ -6,6 +6,7 @@ require "rbconfig"
 
 class CLITest < Minitest::Test
   BIN = File.join(TestHelpers::ROOT, "bin/garmin-mcp")
+  NO_CREDENTIALS = { GARMIN_PERSONAL_API_KEY: nil, GARMIN_MCP_AUTH_TOKEN: nil }.freeze
 
   # Runs bin/garmin-mcp with only the given Garmin settings, ignoring any in the developer's environment.
   def garmin_mcp(*, **values)
@@ -41,5 +42,37 @@ class CLITest < Minitest::Test
 
     assert_equal 64, status.exitstatus
     assert_match(/unknown transport: sse/, stderr)
+  end
+
+  def test_tools_needs_no_credentials_and_treats_an_empty_overrides_file_as_unset
+    names = tools_manifest(GARMIN_MCP_OVERRIDES_FILE: "").map { |tool| tool["name"] }
+
+    assert_equal catalog.tools.map(&:name), names
+  end
+
+  def test_tools_applies_the_overrides_file
+    path = write_tempfile("overrides.yml", <<~YAML)
+      operations:
+        GET /sleep-service/sleep/dailySleepSummariesByDate:
+          title: Custom sleep title
+    YAML
+    sleep = tools_manifest(GARMIN_MCP_OVERRIDES_FILE: path).find { |tool| tool["name"] == "get_daily_sleep_summaries" }
+
+    assert_equal "Custom sleep title", sleep["title"]
+  end
+
+  def test_tools_lists_the_whole_catalog_regardless_of_selection
+    names = tools_manifest(GARMIN_MCP_TOOLS: "sleep-service").map { |tool| tool["name"] }
+
+    assert_includes names, "download_activity"
+  end
+
+  private
+
+  def tools_manifest(**values)
+    stdout, stderr, status = garmin_mcp("tools", **NO_CREDENTIALS, **values)
+
+    assert_predicate status, :success?, stderr
+    JSON.parse(stdout)
   end
 end

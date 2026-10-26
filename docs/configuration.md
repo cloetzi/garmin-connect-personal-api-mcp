@@ -50,6 +50,10 @@ trust.
 
 Unknown names are an error, so a typo cannot silently expose more than intended.
 
+`garmin-mcp tools` prints every tool, including those disabled by default, with `GARMIN_MCP_OVERRIDES_FILE`
+applied; it needs no credentials and ignores `GARMIN_MCP_TOOLS` and `GARMIN_MCP_EXCLUDE_TOOLS`, so you can
+pick names from it. `check-config` lists the tools a configuration actually exposes.
+
 ## Responses and limits
 
 | Variable | Default | Description |
