@@ -71,14 +71,23 @@ pick names from it. `check-config` lists the tools a configuration actually expo
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `GARMIN_MCP_MAX_RESPONSE_BYTES` | `100000` | Tool results longer than this are truncated with a note asking the assistant to narrow the request. |
+| `GARMIN_MCP_MAX_RESPONSE_BYTES` | `100000` | Maximum size of a tool result. JSON results longer than this are truncated with a note asking the assistant to narrow the request. See [activity files](#activity-files) for `download_activity`. |
 | `GARMIN_MCP_STRIP_NULLS` | `true` | Remove `null` fields from Garmin responses to save context. |
 | `GARMIN_MCP_TIMEOUT` | `30` | Seconds to wait for Garmin per request attempt. |
 | `GARMIN_MCP_MAX_CONCURRENCY` | `4` | Maximum concurrent requests to Garmin. |
-| `GARMIN_MCP_MAX_DOWNLOAD_BYTES` | `26214400` | Maximum size of any Garmin response, including activity file downloads. |
+| `GARMIN_MCP_MAX_DOWNLOAD_BYTES` | `26214400` | Maximum size of a Garmin response the server reads, before it parses and truncates it. Larger responses are abandoned with an error asking the assistant to narrow the request. |
 
 Transient Garmin failures (HTTP 429, 502, 503, 504, DNS and connection errors) are retried twice with backoff,
 honoring `Retry-After` up to 10 seconds. Timeouts and TLS failures are not retried; the tool error names the cause.
+
+### Activity files
+
+`download_activity` returns the file as a base64-encoded blob, which is a third larger than the file and cannot
+be truncated. A file is returned only if the encoded blob fits `GARMIN_MCP_MAX_RESPONSE_BYTES`, so the largest
+file is three quarters of that limit (75 KB by default; never more than `GARMIN_MCP_MAX_DOWNLOAD_BYTES`). Larger
+files are refused with an error, and their download stops as soon as the size is exceeded. If your client can
+handle files, raise the limit, e.g. to `4000000` for files up to 3 MB; this also lets JSON results grow to that
+size.
 
 ## Logging
 

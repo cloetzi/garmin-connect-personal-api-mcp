@@ -167,4 +167,35 @@ class HttpAppTest < Minitest::Test
       assert_equal "PK\x03\x04", content.dig("resource", "blob").unpack1("m")
     end
   end
+
+  def test_binary_download_must_fit_the_response_limit
+    with_fake_garmin do |fake|
+      { 1 => 750, 2 => 751 }.each do |id, size|
+        zip = "PK".ljust(size, "a")
+        fake.route("GET", "/download-service/files/activity/#{id}") { [200, { "content-type" => "application/x-zip-compressed" }, zip] }
+      end
+      app = app(fake, GARMIN_MCP_TOOLS: "download_activity", GARMIN_MCP_MAX_RESPONSE_BYTES: "1000")
+
+      fits = result(rpc(app, "tools/call", { name: "download_activity", arguments: { activityId: 1 } }))
+
+      assert_operator fits.dig("content", 0, "resource", "blob").bytesize, :<=, 1000
+
+      too_large = result(rpc(app, "tools/call", { name: "download_activity", arguments: { activityId: 2 } }))
+
+      assert too_large["isError"]
+      assert_match(/larger than 750 bytes.*GARMIN_MCP_MAX_RESPONSE_BYTES/, too_large.dig("content", 0, "text"))
+      refute_includes too_large.dig("content", 0, "text"), "PK"
+    end
+  end
+
+  def test_oversized_json_responses_ask_to_narrow_the_request
+    with_fake_garmin do |fake|
+      fake.json("/userprofile-service/userprofile/settings", { "blob" => "x" * 5_000 })
+      app = app(fake, GARMIN_MCP_MAX_DOWNLOAD_BYTES: "1024")
+      outcome = result(rpc(app, "tools/call", { name: "get_user_profile_settings", arguments: {} }))
+
+      assert outcome["isError"]
+      assert_match(/larger than 1024 bytes.*shorter date range/, outcome.dig("content", 0, "text"))
+    end
+  end
 end

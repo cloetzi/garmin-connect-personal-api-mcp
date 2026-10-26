@@ -42,7 +42,7 @@ operations:
   GET /download-service/files/activity/{activityId}:
     name: download_activity
     title: Download original activity file
-    description: Downloads the original activity file (usually a FIT file in a ZIP archive) as binary data. Disabled by default because assistants cannot interpret it.
+    description: Downloads the original activity file (usually a FIT file in a ZIP archive) as binary data. Disabled by default because assistants cannot interpret it. Files too large for the server's response size limit are refused.
     enabled: false
     parameters:
       activityId:

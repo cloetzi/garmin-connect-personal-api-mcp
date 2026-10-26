@@ -247,7 +247,7 @@
     "enabled": false,
     "service": "download-service",
     "operation": "GET /download-service/files/activity/{activityId}",
-    "description": "Downloads the original activity file (usually a FIT file in a ZIP archive) as binary data. Disabled by default because assistants cannot interpret it.",
+    "description": "Downloads the original activity file (usually a FIT file in a ZIP archive) as binary data. Disabled by default because assistants cannot interpret it. Files too large for the server's response size limit are refused.",
     "inputSchema": {
       "type": "object",
       "properties": {
