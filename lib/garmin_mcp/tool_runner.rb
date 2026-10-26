@@ -41,6 +41,10 @@ module GarminMcp
     rescue Garmin::Error => e
       log(definition, started, error: e.class.name.split("::").last)
       error(e.message)
+    rescue MCP::CancelledError
+      raise
+    rescue StandardError => e
+      unexpected(definition, started, e)
     end
 
     private
@@ -89,6 +93,14 @@ module GarminMcp
       when Array then value.map { |item| compact(item) }
       else value
       end
+    end
+
+    # A bug rather than a Garmin failure. Only the class is logged: the message could quote Garmin's response.
+    def unexpected(definition, started, exception)
+      log(definition, started, error: exception.class.name)
+      @logger.error("tool_exception", tool: definition.name, error: exception.class.name)
+      error("The server failed unexpectedly while handling this request (#{exception.class.name}). " \
+            "This is a bug in the MCP server, not a Garmin problem.")
     end
 
     def text(content) = MCP::Tool::Response.new([{ type: "text", text: content }])

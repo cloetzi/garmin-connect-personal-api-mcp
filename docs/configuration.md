@@ -58,8 +58,8 @@ Unknown names are an error, so a typo cannot silently expose more than intended.
 | `GARMIN_MCP_MAX_CONCURRENCY` | `4` | Maximum concurrent requests to Garmin. |
 | `GARMIN_MCP_MAX_DOWNLOAD_BYTES` | `26214400` | Maximum size of any Garmin response, including activity file downloads. |
 
-Transient Garmin failures (HTTP 429, 502, 503, 504 and connection errors) are retried twice with backoff,
-honoring `Retry-After` up to 10 seconds.
+Transient Garmin failures (HTTP 429, 502, 503, 504, DNS and connection errors) are retried twice with backoff,
+honoring `Retry-After` up to 10 seconds. Timeouts and TLS failures are not retried; the tool error names the cause.
 
 ## Logging
 

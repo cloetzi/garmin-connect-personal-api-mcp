@@ -10,6 +10,8 @@ module GarminMcp
       TOKEN_PATH = "/personalapitoken-service/personal-api/personal-api-key/token"
       REFRESH_WINDOW = 3600
       FALLBACK_TTL = 3600
+      # Printable ASCII without whitespace, as it goes into a header; matched on bytes as the body may not be UTF-8.
+      TOKEN_FORMAT = /\A[!-~]+\z/n
 
       Token = Data.define(:value, :issued_at, :expires_at)
 
@@ -57,8 +59,8 @@ module GarminMcp
         end
         raise Error, "Garmin token exchange failed with HTTP #{response.status}" unless response.success?
 
-        value = response.body.strip
-        raise Error, "Garmin token exchange returned an unexpected response" if value.empty? || value.match?(/\s/)
+        value = response.body.b.strip
+        raise Error, "Garmin token exchange returned an unexpected response" unless value.match?(TOKEN_FORMAT)
 
         now = @clock.call
         expires_at = jwt_expiration(value)
@@ -73,7 +75,8 @@ module GarminMcp
       # Reads the `exp` claim without verifying the signature; Garmin verifies the token, we only schedule renewal.
       def jwt_expiration(value)
         payload = value.split(".")[1] or return
-        Float(JSON.parse(payload.tr("-_", "+/").unpack1("m"))["exp"])
+        claims = JSON.parse(payload.tr("-_", "+/").unpack1("m"))
+        Float(claims["exp"]) if claims.is_a?(Hash)
       rescue ArgumentError, TypeError, JSON::ParserError
         nil
       end

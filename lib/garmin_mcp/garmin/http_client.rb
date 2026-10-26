@@ -4,18 +4,19 @@ require "async"
 require "async/http/client"
 require "async/http/endpoint"
 require "async/semaphore"
+require "openssl"
 require "time"
 
 module GarminMcp
   module Garmin
     # Fiber-based HTTP client for the Garmin host: persistent connections, bounded concurrency,
     # an overall deadline per attempt, a response size cap, and bounded retries on transient failures.
+    # Anything that fails during the exchange surfaces as a Garmin::Error.
+    #
+    # Retries are safe: tools only send GETs, and the one POST, the token exchange, only mints a token,
+    # so a duplicate leaves an unused token that expires on its own.
     class HttpClient
       RETRY_STATUSES = [429, 502, 503, 504].freeze
-      RETRY_ERRORS = [
-        Errno::ECONNRESET, Errno::ECONNREFUSED, Errno::EPIPE, Errno::ETIMEDOUT,
-        EOFError, IOError, SocketError, Protocol::HTTP::Error
-      ].freeze
       MAX_RETRY_AFTER = 10
       USER_AGENT = "garmin-connect-personal-api-mcp/#{VERSION}".freeze
 
@@ -41,11 +42,11 @@ module GarminMcp
           attempt += 1
           @logger.warn("garmin_retry", method:, path: path_only(path), status: response.status, delay:)
           sleep(delay)
-        rescue *RETRY_ERRORS => e
-          raise TransportError, "could not reach Garmin (#{e.class})" if attempt >= @max_retries
+        rescue TransportError => e
+          raise unless e.retryable? && attempt < @max_retries
 
           attempt += 1
-          @logger.warn("garmin_retry", method:, path: path_only(path), error: e.class.name)
+          @logger.warn("garmin_retry", method:, path: path_only(path), error: e.cause.class.name)
           sleep(backoff(attempt))
         end
       end
@@ -70,8 +71,32 @@ module GarminMcp
             end
           end
         end
-      rescue Async::TimeoutError
-        raise TransportError, "Garmin did not respond within #{@timeout} seconds"
+      rescue Error
+        raise
+      rescue StandardError => e
+        raise transport_error(e)
+      end
+
+      # Messages name the failure and the host, not the exception message: protocol errors can quote the response.
+      # OpenSSL's reason is kept, it is the actionable part. Connection failures are retried; a timeout already used
+      # a full attempt, and TLS failures are configuration (CA certificates, clock, intercepting proxy).
+      def transport_error(error)
+        host = @endpoint.hostname
+        case error
+        when Async::TimeoutError, IO::TimeoutError
+          TransportError.new("Garmin did not respond within #{@timeout} seconds.")
+        when OpenSSL::SSL::SSLError
+          reason = error.message[/[^:]+\z/].to_s.strip[0, 120]
+          TransportError.new("The TLS connection to #{host} failed (#{reason}). Check the CA certificates, " \
+                             "the system clock and any TLS-intercepting proxy.")
+        when SocketError
+          TransportError.new("Could not resolve #{host} (#{error.class}). Check DNS and network access.", retryable: true)
+        when SystemCallError, IOError, Protocol::HTTP::Error
+          TransportError.new("Could not reach Garmin at #{host} (#{error.class}). Check network access; " \
+                             "retrying later may help.", retryable: true)
+        else
+          TransportError.new("The request to Garmin at #{host} failed unexpectedly (#{error.class}).")
+        end
       end
 
       def read_body(response)
