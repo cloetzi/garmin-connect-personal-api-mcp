@@ -7,7 +7,14 @@ module GarminMcp
     # The key exchange was rejected; the key is wrong, expired or revoked.
     class AuthenticationError < Error; end
 
-    # Garmin could not be reached or did not answer in time.
-    class TransportError < Error; end
+    # The HTTP exchange with Garmin failed: unreachable host, TLS failure, timeout, broken connection.
+    class TransportError < Error
+      def initialize(message = nil, retryable: false)
+        super(message)
+        @retryable = retryable
+      end
+
+      def retryable? = @retryable
+    end
   end
 end
