@@ -84,9 +84,47 @@ class ConfigTest < Minitest::Test
     assert_config_error(%r{cannot read /nonexistent}, GARMIN_PERSONAL_API_KEY: nil, GARMIN_PERSONAL_API_KEY_FILE: "/nonexistent")
   end
 
-  def test_base_url_must_be_https_except_loopback
-    assert_config_error(/must be an https URL/, GARMIN_PERSONAL_API_BASE_URL: "http://example.com")
-    assert_equal "http://127.0.0.1:9", config(GARMIN_PERSONAL_API_BASE_URL: "http://127.0.0.1:9/").base_url
+  def test_base_url_accepts_the_garmin_host_and_loopback_origins
+    {
+      "https://personal.connectapi.garmin.com/" => "https://personal.connectapi.garmin.com",
+      "http://127.0.0.1:9/" => "http://127.0.0.1:9",
+      "https://127.0.0.2:9" => "https://127.0.0.2:9",
+      "http://[::1]:9" => "http://[::1]:9"
+    }.each do |value, expected|
+      assert_equal expected, config(GARMIN_PERSONAL_API_BASE_URL: value).base_url
+    end
+  end
+
+  def test_base_url_rejects_every_other_host
+    [
+      "https://example.com",
+      "http://example.com",
+      "http://personal.connectapi.garmin.com",
+      "https://personal.connectapi.garmin.com.example.com",
+      "https://personal.connectapi.garmin.com:8443",
+      "https://personal.connectapi.garmin.com@example.com",
+      "https://connectapi.garmin.com",
+      "http://localhost:9",
+      "http://10.0.0.1:9",
+      "http://127.0.0.1:9/prefix",
+      "http://user:secret@127.0.0.1:9",
+      "http://127.0.0.1:9?x=1",
+      "ftp://127.0.0.1:9",
+      "127.0.0.1:9"
+    ].each do |value|
+      error = assert_raises(Config::Error, value) { config(GARMIN_PERSONAL_API_BASE_URL: value) }
+      assert_match %r{GARMIN_PERSONAL_API_BASE_URL .*must be https://personal\.connectapi\.garmin\.com, or}, error.message, value
+    end
+  end
+
+  def test_base_url_error_does_not_echo_the_value
+    error = assert_raises(Config::Error) { config(GARMIN_PERSONAL_API_BASE_URL: "http://user:secret@example.com") }
+
+    refute_includes error.message, "secret"
+  end
+
+  def test_invalid_base_url
+    assert_config_error(/GARMIN_PERSONAL_API_BASE_URL is not a valid URL; it must be/, GARMIN_PERSONAL_API_BASE_URL: "http://exa mple.com")
   end
 
   def test_reports_all_errors_at_once

@@ -95,7 +95,15 @@ module GarminMcp
     # Load all code up front so nothing autoloads inside request fibers and load errors surface at startup.
     def boot(transport)
       Zeitwerk::Loader.eager_load_namespace(GarminMcp)
-      Application.new(Config.from_env(transport:))
+      Application.new(Config.from_env(transport:)).tap { |app| warn_base_url(app.config, app.logger) }
+    end
+
+    def warn_base_url(config, logger)
+      return if config.base_url == Config::DEFAULT_BASE_URL
+
+      # Config only accepts a bare loopback origin here, so the URL holds no credentials.
+      logger.warn("non_default_garmin_base_url", base_url: config.base_url,
+                                                 message: "Garmin requests go to a local test server, not Garmin")
     end
 
     def warn_insecure(app)

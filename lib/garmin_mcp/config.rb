@@ -10,6 +10,9 @@ module GarminMcp
     class Error < GarminMcp::Error; end
 
     DEFAULT_BASE_URL = "https://personal.connectapi.garmin.com"
+    # The Garmin host is fixed: requests carry the API key, so the only alternative is a local fake for tests.
+    BASE_URL_RULE = "must be #{DEFAULT_BASE_URL}, or (for local test servers only) an http or https URL with " \
+                    "a loopback IP address, an optional port and nothing else, such as http://127.0.0.1:9292".freeze
     MIN_AUTH_TOKEN_LENGTH = 32
     LOG_LEVELS = %w[debug info warn error].freeze
     LOG_FORMATS = %w[text json].freeze
@@ -108,14 +111,12 @@ module GarminMcp
 
     def base_url_value
       value = string("GARMIN_PERSONAL_API_BASE_URL", DEFAULT_BASE_URL).chomp("/")
-      uri = URI(value)
-      return value if uri.scheme == "https" && uri.host
-      return value if uri.scheme == "http" && loopback?(uri.host)
+      return value if value == DEFAULT_BASE_URL || loopback_origin?(URI(value))
 
-      @errors << "GARMIN_PERSONAL_API_BASE_URL must be an https URL (plain http is only allowed for loopback hosts)"
+      @errors << "GARMIN_PERSONAL_API_BASE_URL #{BASE_URL_RULE}"
       value
     rescue URI::InvalidURIError
-      @errors << "GARMIN_PERSONAL_API_BASE_URL is not a valid URL"
+      @errors << "GARMIN_PERSONAL_API_BASE_URL is not a valid URL; it #{BASE_URL_RULE}"
       value
     end
 
@@ -139,8 +140,10 @@ module GarminMcp
       value
     end
 
-    def loopback?(host)
-      host == "localhost" || IPAddr.new(host.to_s.delete("[]")).loopback?
+    # Hostnames, even localhost, are refused: /etc/hosts entries (e.g. Docker's --add-host) can point them anywhere.
+    def loopback_origin?(uri)
+      %w[http https].include?(uri.scheme) && uri.userinfo.nil? && uri.path.empty? && uri.query.nil? &&
+        uri.fragment.nil? && IPAddr.new(uri.host.to_s.delete("[]")).loopback?
     rescue IPAddr::Error
       false
     end

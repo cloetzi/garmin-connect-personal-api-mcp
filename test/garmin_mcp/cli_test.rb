@@ -37,6 +37,27 @@ class CLITest < Minitest::Test
     assert_match(/^MCP authentication: not used \(stdio\)$/, stdout)
   end
 
+  def test_check_config_warns_about_a_non_default_base_url
+    _stdout, stderr, status = garmin_mcp("check-config", GARMIN_PERSONAL_API_BASE_URL: "http://127.0.0.1:9")
+
+    assert_predicate status, :success?
+    assert_match(%r{WARN  non_default_garmin_base_url base_url=http://127\.0\.0\.1:9 }, stderr)
+  end
+
+  def test_check_config_does_not_warn_about_the_default_base_url
+    _stdout, stderr, status = garmin_mcp("check-config")
+
+    assert_predicate status, :success?
+    refute_match(/non_default_garmin_base_url/, stderr)
+  end
+
+  def test_check_config_rejects_a_foreign_base_url
+    _stdout, stderr, status = garmin_mcp("check-config", GARMIN_PERSONAL_API_BASE_URL: "https://example.com")
+
+    assert_equal 78, status.exitstatus
+    assert_match(/GARMIN_PERSONAL_API_BASE_URL must be/, stderr)
+  end
+
   def test_check_config_rejects_an_unknown_transport
     _stdout, stderr, status = garmin_mcp("check-config", "sse")
 
