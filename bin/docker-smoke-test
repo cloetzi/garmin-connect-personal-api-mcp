@@ -25,6 +25,10 @@ if docker run --rm "${hardening[@]}" "$image" check-config >/dev/null 2>&1; then
 fi
 pass "refuses to start without credentials"
 
+docker run --rm "${hardening[@]}" -e GARMIN_PERSONAL_API_KEY=smoke-test-key "$image" check-config stdio >/dev/null ||
+  fail "check-config stdio requires an MCP token"
+pass "check-config stdio needs no MCP token"
+
 docker run -d --name "$name" "${hardening[@]}" -p "127.0.0.1:${port}:8080" \
   -e GARMIN_PERSONAL_API_KEY=smoke-test-key -e GARMIN_MCP_AUTH_TOKEN="$token" "$image" >/dev/null
 

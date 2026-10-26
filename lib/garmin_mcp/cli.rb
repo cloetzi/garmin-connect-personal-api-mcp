@@ -11,7 +11,8 @@ module GarminMcp
       Commands:
         http          Serve MCP over Streamable HTTP (default)
         stdio         Serve MCP over stdin/stdout
-        check-config  Validate configuration and overrides, then exit
+        check-config [http|stdio]
+                      Validate configuration and overrides for a transport (default http), then exit
         tools         Print the tool catalog as JSON (no credentials needed)
         version       Print the version
 
@@ -25,7 +26,7 @@ module GarminMcp
       case command
       when "http" then serve_http
       when "stdio" then serve_stdio
-      when "check-config" then check_config
+      when "check-config" then check_config(argv[1] || "http")
       when "tools" then print_tools
       when "version", "--version", "-v" then puts VERSION
       when "help", "--help", "-h" then puts USAGE
@@ -67,10 +68,21 @@ module GarminMcp
       with_shutdown(app) { Sync { transport.open } }
     end
 
-    def check_config
-      app = boot(ENV["GARMIN_MCP_TRANSPORT"] == "stdio" ? :stdio : :http)
-      puts "Configuration OK: #{app.tools.size} tools enabled (#{app.tools.map(&:name).join(", ")})"
-      puts "MCP authentication: #{app.config.auth_disabled ? "DISABLED" : "bearer token"}"
+    def check_config(transport)
+      unless %w[http stdio].include?(transport)
+        warn "unknown transport: #{transport}\n\n#{USAGE}"
+        exit 64
+      end
+
+      app = boot(transport.to_sym)
+      puts "Configuration OK for the #{transport} transport: #{app.tools.size} tools enabled (#{app.tools.map(&:name).join(", ")})"
+      puts "MCP authentication: #{check_config_auth(transport, app.config)}"
+    end
+
+    def check_config_auth(transport, config)
+      return "not used (stdio)" if transport == "stdio"
+
+      config.auth_disabled ? "DISABLED" : "bearer token"
     end
 
     def print_tools

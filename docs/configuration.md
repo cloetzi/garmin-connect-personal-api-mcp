@@ -1,10 +1,12 @@
 # Configuration
 
 The server is configured entirely through environment variables. Invalid configuration stops the server at
-startup with a list of every problem. Validate a configuration without starting the server:
+startup with a list of every problem. Validate a configuration without starting the server, naming the
+transport you run (`http`, the default, or `stdio`, which needs no MCP token):
 
 ```sh
 docker run --rm --env-file garmin.env ghcr.io/cloetzi/garmin-connect-personal-api-mcp check-config
+docker run --rm --env-file garmin.env ghcr.io/cloetzi/garmin-connect-personal-api-mcp check-config stdio
 ```
 
 ## Secrets
