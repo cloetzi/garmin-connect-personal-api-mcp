@@ -1,0 +1,12 @@
+Garmin Connect Personal API MCP server
+Copyright 2026 The garmin-connect-personal-api-mcp contributors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+data/openapi.json is the OpenAPI description of the Garmin Connect Personal API, as published by
+Garmin Ltd. or its subsidiaries at
+https://developer.garmin.com/gc-developer-program/personal/swagger-docs/
+It is included unmodified so that tools can be generated from it.
+
+This project is not affiliated with, endorsed by, or sponsored by Garmin Ltd. or its subsidiaries.
+Garmin and Garmin Connect are trademarks of Garmin Ltd. or its subsidiaries.

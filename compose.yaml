@@ -1,0 +1,31 @@
+# Example deployment. Create the secret files first:
+#   mkdir -p secrets
+#   printf '%s' '<your Garmin key>' > secrets/garmin_api_key
+#   openssl rand -hex 32 > secrets/mcp_auth_token
+#   chmod 700 secrets && sudo chown 65532 secrets/*  # Linux: the container runs as uid 65532 and must read them
+#   chmod 400 secrets/*
+services:
+  garmin-mcp:
+    image: ghcr.io/cloetzi/garmin-connect-personal-api-mcp:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      GARMIN_PERSONAL_API_KEY_FILE: /run/secrets/garmin_api_key
+      GARMIN_MCP_AUTH_TOKEN_FILE: /run/secrets/mcp_auth_token
+      # Names other containers or hosts use to reach this server, besides localhost:
+      # GARMIN_MCP_ALLOWED_HOSTS: garmin-mcp,garmin-mcp.lan
+    secrets:
+      - garmin_api_key
+      - mcp_auth_token
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    pids_limit: 64
+
+secrets:
+  garmin_api_key:
+    file: ./secrets/garmin_api_key
+  mcp_auth_token:
+    file: ./secrets/mcp_auth_token

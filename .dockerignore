@@ -1,0 +1,9 @@
+# Allowlist: only what the image needs.
+*
+!Gemfile
+!Gemfile.lock
+!.ruby-version
+!bin/garmin-mcp
+!bin/healthcheck
+!lib/
+!data/

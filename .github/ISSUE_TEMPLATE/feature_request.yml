@@ -1,0 +1,15 @@
+name: Feature request or tool improvement
+description: Suggest a feature, or a better description or default for a tool
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and what gets in the way? For tool improvements, name the tool and what the assistant got wrong.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal

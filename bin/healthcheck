@@ -1,0 +1,20 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Container health probe: stdlib only, so it starts fast and needs no curl in the image.
+require "net/http"
+
+begin
+  # In stdio mode there is no HTTP listener; the process being alive is the health signal.
+  exit 0 if File.read("/proc/1/cmdline").split("\0").include?("stdio")
+rescue SystemCallError
+  nil
+end
+
+begin
+  port = ENV.fetch("GARMIN_MCP_PORT", "8080")
+  response = Net::HTTP.start("127.0.0.1", port, open_timeout: 2, read_timeout: 2) { |http| http.get("/healthz") }
+  exit(response.is_a?(Net::HTTPOK) ? 0 : 1)
+rescue StandardError
+  exit 1
+end

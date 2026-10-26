@@ -1,0 +1,28 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Summarizes changes between two versions of the Garmin OpenAPI spec.
+#
+# Usage:
+#   bin/spec-diff                 # committed data/openapi.json (git HEAD) vs. the working copy
+#   bin/spec-diff OLD.json        # OLD.json vs. the working copy
+#   bin/spec-diff OLD.json NEW.json
+
+require "json"
+require "open3"
+require_relative "../lib/garmin_mcp/openapi/diff"
+
+current = File.expand_path("../data/openapi.json", __dir__)
+
+old_json = if ARGV[0]
+             File.read(ARGV[0])
+           else
+             output, status = Open3.capture2("git", "-C", File.dirname(current), "show", "HEAD:data/openapi.json")
+             abort "bin/spec-diff: no committed data/openapi.json to compare against; pass OLD.json explicitly" unless status.success?
+             output
+           end
+new_json = File.read(ARGV[1] || current)
+
+diff = GarminMcp::OpenAPI::Diff.new(JSON.parse(old_json), JSON.parse(new_json))
+puts diff
+exit(diff.empty? ? 0 : 1)

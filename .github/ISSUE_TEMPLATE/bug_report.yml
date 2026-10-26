@@ -1,0 +1,31 @@
+name: Bug report
+description: Something does not work as documented
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Never paste your Garmin API key, MCP tokens or personal Garmin data. Redact logs before posting.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Image tag or version
+      placeholder: ghcr.io/cloetzi/garmin-connect-personal-api-mcp:0.1.0
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: MCP client and transport
+      placeholder: Claude Code over HTTP
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs (redacted)
+      render: text

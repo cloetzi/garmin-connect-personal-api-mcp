@@ -1,0 +1,19 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Fetches the latest Garmin Connect Personal API spec from the developer site and writes it to
+# data/openapi.json. Run `bin/spec-diff` afterwards to review what changed.
+#
+# Usage: bin/fetch-openapi [--output PATH]
+
+require_relative "../lib/garmin_mcp/openapi/extractor"
+
+output = File.expand_path("../data/openapi.json", __dir__)
+output = ARGV[ARGV.index("--output") + 1] if ARGV.include?("--output")
+
+spec, bundle_url = GarminMcp::OpenAPI::Extractor.new.fetch
+File.write(output, "#{JSON.pretty_generate(spec)}\n")
+
+operations = spec["paths"].sum { |_path, item| item.count { |method, _| %w[get put post patch delete].include?(method) } }
+warn "Extracted OpenAPI #{spec["openapi"]} (#{spec.dig("info", "version")}) from #{bundle_url}"
+warn "Wrote #{operations} operations and #{spec.dig("components", "schemas")&.size.to_i} schemas to #{output}"

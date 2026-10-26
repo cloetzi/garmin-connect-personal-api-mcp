@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# Smoke-tests a built image the way users run it: hardened container, bearer auth, Host checks, stdio.
+# No Garmin credentials are needed; tool calls against Garmin are not exercised.
+#
+# Usage: bin/docker-smoke-test IMAGE
+set -euo pipefail
+
+image="${1:?usage: bin/docker-smoke-test IMAGE}"
+name="garmin-mcp-smoke-$$"
+port="${SMOKE_PORT:-18765}"
+token="$(openssl rand -hex 32)"
+url="http://127.0.0.1:${port}"
+hardening=(--read-only --cap-drop ALL --security-opt no-new-privileges)
+mcp_headers=(-H "content-type: application/json" -H "accept: application/json, text/event-stream" -H "mcp-protocol-version: 2025-11-25")
+list='{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+
+cleanup() { docker rm -f "$name" >/dev/null 2>&1 || true; }
+trap cleanup EXIT
+
+fail() { echo "FAIL: $*" >&2; docker logs "$name" >&2 2>/dev/null || true; exit 1; }
+pass() { echo "ok - $*"; }
+
+if docker run --rm "${hardening[@]}" "$image" check-config >/dev/null 2>&1; then
+  fail "starts without credentials"
+fi
+pass "refuses to start without credentials"
+
+docker run -d --name "$name" "${hardening[@]}" -p "127.0.0.1:${port}:8080" \
+  -e GARMIN_PERSONAL_API_KEY=smoke-test-key -e GARMIN_MCP_AUTH_TOKEN="$token" "$image" >/dev/null
+
+for _ in $(seq 1 30); do
+  curl -sf "$url/healthz" >/dev/null && break
+  sleep 1
+done
+curl -sf "$url/healthz" | grep -q '"status":"ok"' || fail "healthz"
+pass "healthz"
+
+status="$(curl -s -o /dev/null -w '%{http_code}' "${mcp_headers[@]}" "$url/mcp" -d "$list")"
+[ "$status" = 401 ] || fail "unauthenticated request returned $status"
+pass "rejects requests without a token"
+
+status="$(curl -s -o /dev/null -w '%{http_code}' "${mcp_headers[@]}" -H "authorization: Bearer $(openssl rand -hex 32)" "$url/mcp" -d "$list")"
+[ "$status" = 401 ] || fail "wrong token returned $status"
+pass "rejects a wrong token"
+
+status="$(curl -s -o /dev/null -w '%{http_code}' "${mcp_headers[@]}" -H "authorization: Bearer $token" -H "host: evil.example" "$url/mcp" -d "$list")"
+[ "$status" = 403 ] || fail "foreign Host returned $status"
+pass "rejects a foreign Host header"
+
+tools="$(curl -sf "${mcp_headers[@]}" -H "authorization: Bearer $token" "$url/mcp" -d "$list" | grep -o '"name":"[a-z0-9_]*"' | wc -l | tr -d ' ')"
+[ "$tools" -gt 10 ] || fail "tools/list returned $tools tools"
+pass "tools/list returns $tools tools"
+
+user="$(docker exec "$name" id -u)"
+[ "$user" = 65532 ] || fail "runs as uid $user"
+pass "runs as an unprivileged user"
+
+docker stop -t 10 "$name" >/dev/null
+docker logs "$name" 2>&1 | grep -q "shutdown" || fail "no graceful shutdown on SIGTERM"
+pass "shuts down gracefully"
+
+response="$(printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"smoke","version":"1"}}}' |
+  docker run -i --rm "${hardening[@]}" -e GARMIN_PERSONAL_API_KEY=smoke-test-key "$image" stdio 2>/dev/null)"
+echo "$response" | grep -q '"serverInfo"' || fail "stdio initialize: $response"
+pass "stdio transport"

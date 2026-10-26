@@ -1,0 +1,219 @@
+# Curated refinements layered on top of data/openapi.json (Garmin's spec, the source of truth).
+#
+# Every operation in the spec must have an entry here with at least a `name`; the test suite fails
+# on missing entries and on entries that no longer match the spec. See docs/overrides.md for the format.
+
+instructions: |
+  Read-only access to the user's own Garmin Connect health and fitness data.
+  - Dates are calendar dates in YYYY-MM-DD format, interpreted in the user's local calendar.
+  - Range tools accept a limited span (stated in each tool's description); split longer periods into several calls.
+  - Unless a field name says otherwise, distances are in meters, durations in seconds and speeds in meters per second.
+  - Use search_activities to find activity IDs, then get_activity for details.
+  - get_user_profile_settings returns the user's measurement system, time zone and display preferences.
+  - Fields with null values are omitted from responses.
+
+operations:
+  GET /activity-service/activity/{activityId}:
+    name: get_activity
+    title: Activity details
+
+  GET /activity-service/activity/{activityId}/workouts:
+    name: get_activity_workouts
+    title: Activity workouts
+
+  GET /activitylist-service/activities/search/activities:
+    name: search_activities
+    title: Search activities
+    description_append: Results are sorted by start time, newest first, unless sortBy/sortOrder are given. Page through results with start and limit.
+    parameters:
+      limit:
+        description: Maximum number of activities to return (Garmin allows up to 99). Defaults to 20 to keep responses small.
+        default: 20
+
+  GET /biometric-service/heartRateZones/v2:
+    name: get_heart_rate_zones
+    title: Heart rate zones
+
+  GET /download-service/files/activity/{activityId}:
+    name: download_activity
+    title: Download original activity file
+    description: Downloads the original activity file (usually a FIT file in a ZIP archive) as binary data. Disabled by default because assistants cannot interpret it.
+    enabled: false
+    parameters:
+      activityId:
+        description: The ID of the activity to download, as returned by search_activities.
+
+  GET /fitnessage-service/fitnessage/v2/{calendarDate}:
+    name: get_fitness_age
+    title: Fitness age
+
+  GET /goal-service/goal/user/effective/weightgoal/{startDate}/{endDate}:
+    name: get_effective_weight_goals
+    title: Weight goals
+    parameters:
+      startDate:
+        description: First calendar date of the range (YYYY-MM-DD), inclusive.
+      endDate:
+        description: Last calendar date of the range (YYYY-MM-DD), inclusive.
+
+  GET /hrv-service/hrv/{calendarDate}:
+    name: get_daily_hrv
+    title: Daily heart rate variability
+    description: Returns heart rate variability (HRV) for one calendar date, including the overnight summary and the individual readings.
+    parameters:
+      calendarDate:
+        description: Calendar date (YYYY-MM-DD).
+
+  GET /hrv-service/hrv/daily/{fromDate}/{toDate}:
+    name: get_daily_hrv_summaries
+    title: HRV summaries for a date range
+    description: Returns daily heart rate variability (HRV) summaries for an inclusive date range.
+    parameters:
+      fromDate:
+        description: First calendar date of the range (YYYY-MM-DD), inclusive.
+      toDate:
+        description: Last calendar date of the range (YYYY-MM-DD), inclusive.
+
+  GET /nutrition-service/food/logs/{date}:
+    name: get_daily_food_logs
+    title: Daily nutrition logs
+    parameters:
+      includeMedia:
+        description: Whether to include meal photos. Defaults to false here because image data is rarely useful to an assistant.
+        default: false
+
+  GET /periodichealth-service/menstrualcycle/summary/{calendarDate}:
+    name: get_menstrual_cycle_summary
+    title: Menstrual cycle summary
+
+  GET /periodichealth-service/menstrualcycle/dayview/{calendarDate}:
+    name: get_menstrual_cycle_day_view
+    title: Menstrual cycle day view
+    parameters:
+      todayDate:
+        description: Today's calendar date (YYYY-MM-DD) from the user's perspective, used as the reference point for predictions.
+        required: true
+
+  GET /sleep-service/sleep/dailySleep:
+    name: get_daily_sleep
+    title: Daily sleep
+    description: Returns sleep data for the night ending on the given calendar date, including sleep stages, scores, and overnight metrics.
+    parameters:
+      date:
+        description: Calendar date (YYYY-MM-DD) of the morning the sleep ended.
+        required: true
+
+  GET /sleep-service/sleep/dailySleepSummariesByDate:
+    name: get_daily_sleep_summaries
+    title: Sleep summaries for a date range
+    parameters:
+      startDate:
+        description: First calendar date of the range (YYYY-MM-DD), inclusive.
+        required: true
+      endDate:
+        description: Last calendar date of the range (YYYY-MM-DD), inclusive.
+        required: true
+    date_range: { start: startDate, end: endDate, max_days: 31 }
+
+  GET /userprofile-service/userprofile/settings:
+    name: get_user_profile_settings
+    title: User profile settings
+    description: Returns the user's profile settings, including measurement system (metric or statute), time zone, locale, and date/time display formats.
+
+  GET /usersummary-service/stats/hydration/daily/{startDate}/{endDate}:
+    name: get_daily_hydration
+    title: Daily hydration
+    parameters:
+      startDate:
+        description: First calendar date of the range (YYYY-MM-DD), inclusive.
+      endDate:
+        description: Last calendar date of the range (YYYY-MM-DD), inclusive.
+    date_range: { start: startDate, end: endDate, max_days: 31 }
+
+  GET /usersummary-service/stats/steps/daily/{startDate}/{endDate}:
+    name: get_daily_steps
+    title: Daily steps
+    parameters:
+      startDate:
+        description: First calendar date of the range (YYYY-MM-DD), inclusive.
+      endDate:
+        description: Last calendar date of the range (YYYY-MM-DD), inclusive.
+    date_range: { start: startDate, end: endDate, max_days: 28 }
+
+  GET /usersummary-service/stats/stress/daily/{startDate}/{endDate}:
+    name: get_daily_stress
+    title: Daily stress
+    parameters:
+      startDate:
+        description: First calendar date of the range (YYYY-MM-DD), inclusive.
+      endDate:
+        description: Last calendar date of the range (YYYY-MM-DD), inclusive.
+    date_range: { start: startDate, end: endDate, max_days: 28 }
+
+  GET /usersummary-service/usersummary/daily:
+    name: get_daily_user_summary
+    title: Daily summary
+    parameters:
+      calendarDate:
+        description: Calendar date (YYYY-MM-DD).
+        required: true
+
+  GET /usersummary-service/v2/dailysummaries:
+    name: get_daily_summaries
+    title: Daily summaries for a date range
+    description_append: For a single day, use the same startDate and endDate.
+    parameters:
+      startDate:
+        description: First calendar date of the range (YYYY-MM-DD), inclusive.
+        required: true
+      endDate:
+        description: Last calendar date of the range (YYYY-MM-DD), inclusive.
+        required: true
+    date_range: { start: startDate, end: endDate, max_days: 366 }
+
+  GET /weight-service/weight/all/{startDate}/{endDate}:
+    name: get_weight_entries
+    title: All weight entries
+    description_append: Prefer get_weight_measurements when daily values or the range average are enough.
+
+  GET /weight-service/weight/range/{startDate}/{endDate}:
+    name: get_weight_measurements
+    title: Weight summaries
+
+  GET /wellness-service/wellness/bodyBattery/reports/daily:
+    name: get_daily_body_battery
+    title: Daily Body Battery
+    parameters:
+      startDate:
+        description: First calendar date of the range (YYYY-MM-DD), inclusive.
+        required: true
+      endDate:
+        description: Last calendar date of the range (YYYY-MM-DD), inclusive.
+        required: true
+    date_range: { start: startDate, end: endDate, max_days: 31 }
+
+  GET /wellness-service/wellness/daily/spo2acclimation/{calendarDate}:
+    name: get_daily_spo2
+    title: Daily SpO2
+    description: Returns blood oxygen saturation (SpO2) readings and altitude acclimation data for a calendar date.
+    parameters:
+      calendarDate:
+        description: Calendar date (YYYY-MM-DD).
+
+  GET /wellness-service/wellness/dailyHeartRate:
+    name: get_daily_heart_rate
+    title: Daily heart rate
+    description: Returns heart rate data for a calendar date, including resting heart rate and the intraday readings.
+    parameters:
+      date:
+        description: Calendar date (YYYY-MM-DD).
+        required: true
+
+  GET /wellnessactivity-service/activity/summary/range/{fromDate}/{untilDate}:
+    name: get_wellness_activity_summaries
+    title: Wellness activity summaries
+    parameters:
+      fromDate:
+        description: First calendar date of the range (YYYY-MM-DD), inclusive.
+      untilDate:
+        description: Last calendar date of the range (YYYY-MM-DD), inclusive.

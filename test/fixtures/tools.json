@@ -1,0 +1,874 @@
+[
+  {
+    "name": "get_activity",
+    "title": "Activity details",
+    "enabled": true,
+    "service": "activity-service",
+    "operation": "GET /activity-service/activity/{activityId}",
+    "description": "Retrieves the activity summary, metadata, measurements, and split summary information for the specified activity.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "activityId": {
+          "type": "integer",
+          "format": "int64",
+          "description": "The ID of the activity to retrieve the summary"
+        }
+      },
+      "required": [
+        "activityId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_activity_workouts",
+    "title": "Activity workouts",
+    "enabled": true,
+    "service": "activity-service",
+    "operation": "GET /activity-service/activity/{activityId}/workouts",
+    "description": "Retrieves workouts performed during an activity",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "activityId": {
+          "type": "integer",
+          "format": "int64",
+          "description": "The ID of the activity for which to retrieve workouts"
+        }
+      },
+      "required": [
+        "activityId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "search_activities",
+    "title": "Search activities",
+    "enabled": true,
+    "service": "activitylist-service",
+    "operation": "GET /activitylist-service/activities/search/activities",
+    "description": "Searches activities using the supplied filters and returns matching paginated activity summaries. Results are sorted by start time, newest first, unless sortBy/sortOrder are given. Page through results with start and limit.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "start": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Zero-based offset of the first activity to return. Defaults to 0.",
+          "default": 0
+        },
+        "limit": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Maximum number of activities to return (Garmin allows up to 99). Defaults to 20 to keep responses small.",
+          "default": 20
+        },
+        "favorite": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Filter by favorite status: 1 returns favorites, 0 returns non-favorites, and -1 applies no favorite filter. Defaults to -1.",
+          "default": -1
+        },
+        "sortOrder": {
+          "type": "string",
+          "description": "Sort direction: asc for ascending or desc for descending, case-insensitive. Defaults to desc.",
+          "default": "desc"
+        },
+        "excludeChildren": {
+          "type": "boolean",
+          "description": "Whether to exclude child activities that have a parent activity, such as individual legs of a multisport activity. Defaults to true.",
+          "default": true
+        },
+        "sortBy": {
+          "type": "string",
+          "description": "Activity field to sort by, such as name, distance, or duration. Defaults to startLocal, the activity's local start date and time."
+        },
+        "search": {
+          "type": "string",
+          "description": "Text to search for in activity names and descriptions."
+        },
+        "activityType": {
+          "type": "string",
+          "description": "Parent activity type key to include, such as running or cycling. Must identify a parent type, not a subtype."
+        },
+        "activitySubType": {
+          "type": "string",
+          "description": "Activity subtype key to include. Must identify a child type and, if activityType is also provided, belong to that parent type. For example, use activitySubType=trail_running with activityType=running, or activitySubType=road_cycling with activityType=cycling."
+        },
+        "eventType": {
+          "type": "string",
+          "description": "Event classification key to include, such as race, training, recreation, fitness, specialEvent, or uncategorized."
+        },
+        "minDistance": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Inclusive minimum activity distance, in meters."
+        },
+        "maxDistance": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Inclusive maximum activity distance, in meters."
+        },
+        "minDuration": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Inclusive minimum activity timer duration, in seconds."
+        },
+        "maxDuration": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Inclusive maximum activity timer duration, in seconds."
+        },
+        "minElevation": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Inclusive minimum total elevation gain for the activity, in meters."
+        },
+        "maxElevation": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Inclusive maximum total elevation gain for the activity, in meters."
+        },
+        "startDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Inclusive earliest activity start date, based on the activity's local start time, in YYYY-MM-DD format."
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Inclusive latest activity start date, based on the activity's local start time, in YYYY-MM-DD format."
+        },
+        "upperLatitude": {
+          "type": "number",
+          "format": "double",
+          "description": "Northern latitude boundary of the bounding box for activity start locations, in decimal degrees. Provide all four latitude and longitude boundaries to apply this filter."
+        },
+        "rightLongitude": {
+          "type": "number",
+          "format": "double",
+          "description": "Eastern longitude boundary of the bounding box for activity start locations, in decimal degrees. Provide all four latitude and longitude boundaries to apply this filter."
+        },
+        "lowerLatitude": {
+          "type": "number",
+          "format": "double",
+          "description": "Southern latitude boundary of the bounding box for activity start locations, in decimal degrees. Provide all four latitude and longitude boundaries to apply this filter."
+        },
+        "leftLongitude": {
+          "type": "number",
+          "format": "double",
+          "description": "Western longitude boundary of the bounding box for activity start locations, in decimal degrees. Provide all four latitude and longitude boundaries to apply this filter."
+        },
+        "lowerMaxDepth": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Inclusive lower bound on the dive activity's maximum depth, in centimeters."
+        },
+        "upperMaxDepth": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Inclusive upper bound on the dive activity's maximum depth, in centimeters."
+        },
+        "decoDive": {
+          "type": "boolean",
+          "description": "Filter by decompression dive status: true returns decompression dives and false returns activities marked as non-decompression dives. Omit to apply no decompression dive filter."
+        },
+        "minElapsedDuration": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Inclusive minimum total elapsed activity duration, including paused time, in seconds."
+        },
+        "maxElapsedDuration": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Inclusive maximum total elapsed activity duration, including paused time, in seconds."
+        },
+        "minBottomTime": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Inclusive minimum dive bottom time, in seconds."
+        },
+        "maxBottomTime": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Inclusive maximum dive bottom time, in seconds."
+        },
+        "minAvgPower": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Inclusive minimum average activity power, in watts."
+        },
+        "excludedActivitySubType": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Activity subtype keys to exclude. Repeat this query parameter to exclude multiple subtypes."
+        },
+        "requiredField": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Activity fields that must have a non-null value for an activity to be included. Repeat this query parameter to require multiple fields; all specified fields must be present."
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_heart_rate_zones",
+    "title": "Heart rate zones",
+    "enabled": true,
+    "service": "biometric-service",
+    "operation": "GET /biometric-service/heartRateZones/v2",
+    "description": "Retrieve the user's heart rate zone configuration.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "generateDefaults": {
+          "type": "boolean",
+          "description": "Whether to generate default zones when the user has no configured zones.",
+          "default": true
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "download_activity",
+    "title": "Download original activity file",
+    "enabled": false,
+    "service": "download-service",
+    "operation": "GET /download-service/files/activity/{activityId}",
+    "description": "Downloads the original activity file (usually a FIT file in a ZIP archive) as binary data. Disabled by default because assistants cannot interpret it.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "activityId": {
+          "type": "integer",
+          "format": "int64",
+          "description": "The ID of the activity to download, as returned by search_activities."
+        }
+      },
+      "required": [
+        "activityId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_fitness_age",
+    "title": "Fitness age",
+    "enabled": true,
+    "service": "fitnessage-service",
+    "operation": "GET /fitnessage-service/fitnessage/v2/{calendarDate}",
+    "description": "Returns the lastest Fitness Age information as of the target calendar date.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "calendarDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "The target date; Fitness Age information returned will be the latest available as of this date."
+        },
+        "fullHistoryScan": {
+          "type": "boolean",
+          "description": "Whether to scan the full history to find the latest Fitness Age information. If false, only the last 28 days relative to the target calendar date will be considered.",
+          "default": true
+        }
+      },
+      "required": [
+        "calendarDate"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_effective_weight_goals",
+    "title": "Weight goals",
+    "enabled": true,
+    "service": "goal-service",
+    "operation": "GET /goal-service/goal/user/effective/weightgoal/{startDate}/{endDate}",
+    "description": "Returns the authenticated user's effective weight goals and weight goal ranges for the requested date interval.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "startDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "First calendar date of the range (YYYY-MM-DD), inclusive."
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Last calendar date of the range (YYYY-MM-DD), inclusive."
+        }
+      },
+      "required": [
+        "startDate",
+        "endDate"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_daily_hrv",
+    "title": "Daily heart rate variability",
+    "enabled": true,
+    "service": "hrv-service",
+    "operation": "GET /hrv-service/hrv/{calendarDate}",
+    "description": "Returns heart rate variability (HRV) for one calendar date, including the overnight summary and the individual readings.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "calendarDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Calendar date (YYYY-MM-DD)."
+        }
+      },
+      "required": [
+        "calendarDate"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_daily_hrv_summaries",
+    "title": "HRV summaries for a date range",
+    "enabled": true,
+    "service": "hrv-service",
+    "operation": "GET /hrv-service/hrv/daily/{fromDate}/{toDate}",
+    "description": "Returns daily heart rate variability (HRV) summaries for an inclusive date range.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "fromDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "First calendar date of the range (YYYY-MM-DD), inclusive."
+        },
+        "toDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Last calendar date of the range (YYYY-MM-DD), inclusive."
+        }
+      },
+      "required": [
+        "fromDate",
+        "toDate"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_daily_food_logs",
+    "title": "Daily nutrition logs",
+    "enabled": true,
+    "service": "nutrition-service",
+    "operation": "GET /nutrition-service/food/logs/{date}",
+    "description": "Retrieves the user's daily nutrition summary for a specific calendar date. This includes the user's nutrition goals, nutrients consumed, and discrete events for the day. The response can optionally include meal-by-meal breakdowns of calories and other nutrients consumed by the user on the given date.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "includeGoals": {
+          "type": "boolean",
+          "description": "Goals are included by default unless requested with includeGoals=false",
+          "default": true
+        },
+        "includeNutrition": {
+          "type": "boolean",
+          "description": "Nutrition information is included by default unless requested with includeNutrition=false",
+          "default": true
+        },
+        "includeMedia": {
+          "type": "boolean",
+          "description": "Whether to include meal photos. Defaults to false here because image data is rarely useful to an assistant.",
+          "default": false
+        },
+        "mealId": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Id of the meal like id for Breakfast, Lunch, Snacks or Dinner"
+        },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Date for which to retrieve the daily nutrition logs. Date must be in the YYYY-MM-DD format. The date is interpreted in the user's local timezone."
+        }
+      },
+      "required": [
+        "date"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_menstrual_cycle_summary",
+    "title": "Menstrual cycle summary",
+    "enabled": true,
+    "service": "periodichealth-service",
+    "operation": "GET /periodichealth-service/menstrualcycle/summary/{calendarDate}",
+    "description": "Returns a summary of the user's menstrual cycle.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "calendarDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "The calendar date (yyyy-MM-dd) to retrieve data for."
+        }
+      },
+      "required": [
+        "calendarDate"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_menstrual_cycle_day_view",
+    "title": "Menstrual cycle day view",
+    "enabled": true,
+    "service": "periodichealth-service",
+    "operation": "GET /periodichealth-service/menstrualcycle/dayview/{calendarDate}",
+    "description": "Returns detailed menstrual cycle information for a single calendar day, combining the user's logged daily data (symptoms, flow, mood, etc.), the cycle summary for that day, and (for pregnancy tracking) weekly weight goal ranges.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "calendarDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "The calendar date (yyyy-MM-dd) to retrieve data for."
+        },
+        "todayDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Today's calendar date (YYYY-MM-DD) from the user's perspective, used as the reference point for predictions."
+        },
+        "reducedResponse": {
+          "type": "boolean",
+          "description": "When true, returns a reduced/lightweight version of the response payload.",
+          "default": false
+        },
+        "skipbm": {
+          "type": "boolean",
+          "description": "When true, excludes baby movement (kick count) data from the response.",
+          "default": false
+        },
+        "includeAnalysis": {
+          "type": "boolean",
+          "description": "When true, includes menstrual cycle analysis data in the response.",
+          "default": false
+        }
+      },
+      "required": [
+        "calendarDate",
+        "todayDate"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_daily_sleep",
+    "title": "Daily sleep",
+    "enabled": true,
+    "service": "sleep-service",
+    "operation": "GET /sleep-service/sleep/dailySleep",
+    "description": "Returns sleep data for the night ending on the given calendar date, including sleep stages, scores, and overnight metrics.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Calendar date (YYYY-MM-DD) of the morning the sleep ended."
+        }
+      },
+      "required": [
+        "date"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_daily_sleep_summaries",
+    "title": "Sleep summaries for a date range",
+    "enabled": true,
+    "service": "sleep-service",
+    "operation": "GET /sleep-service/sleep/dailySleepSummariesByDate",
+    "description": "Retrieves daily sleep summaries data for a date range, up to a maximum of 31 days. Maximum range: 31 days, inclusive.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "startDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "First calendar date of the range (YYYY-MM-DD), inclusive."
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Last calendar date of the range (YYYY-MM-DD), inclusive."
+        }
+      },
+      "required": [
+        "startDate",
+        "endDate"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_user_profile_settings",
+    "title": "User profile settings",
+    "enabled": true,
+    "service": "userprofile-service",
+    "operation": "GET /userprofile-service/userprofile/settings",
+    "description": "Returns the user's profile settings, including measurement system (metric or statute), time zone, locale, and date/time display formats.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_daily_hydration",
+    "title": "Daily hydration",
+    "enabled": true,
+    "service": "usersummary-service",
+    "operation": "GET /usersummary-service/stats/hydration/daily/{startDate}/{endDate}",
+    "description": "Get daily hydration data for a date range, up to a maximum of 31 days. Maximum range: 31 days, inclusive.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "startDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "First calendar date of the range (YYYY-MM-DD), inclusive."
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Last calendar date of the range (YYYY-MM-DD), inclusive."
+        }
+      },
+      "required": [
+        "startDate",
+        "endDate"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_daily_steps",
+    "title": "Daily steps",
+    "enabled": true,
+    "service": "usersummary-service",
+    "operation": "GET /usersummary-service/stats/steps/daily/{startDate}/{endDate}",
+    "description": "Get daily steps data for a date range, up to a maximum of 28 days. Maximum range: 28 days, inclusive.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "startDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "First calendar date of the range (YYYY-MM-DD), inclusive."
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Last calendar date of the range (YYYY-MM-DD), inclusive."
+        }
+      },
+      "required": [
+        "startDate",
+        "endDate"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_daily_stress",
+    "title": "Daily stress",
+    "enabled": true,
+    "service": "usersummary-service",
+    "operation": "GET /usersummary-service/stats/stress/daily/{startDate}/{endDate}",
+    "description": "Get daily stress data for a date range, up to a maximum of 28 days. Maximum range: 28 days, inclusive.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "startDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "First calendar date of the range (YYYY-MM-DD), inclusive."
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Last calendar date of the range (YYYY-MM-DD), inclusive."
+        }
+      },
+      "required": [
+        "startDate",
+        "endDate"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_daily_user_summary",
+    "title": "Daily summary",
+    "enabled": true,
+    "service": "usersummary-service",
+    "operation": "GET /usersummary-service/usersummary/daily",
+    "description": "Get user summary data for a specific date. User summary data includes steps, calories, stress, Body Battery, and other wellness metrics for the given date.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "calendarDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Calendar date (YYYY-MM-DD)."
+        }
+      },
+      "required": [
+        "calendarDate"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_daily_summaries",
+    "title": "Daily summaries for a date range",
+    "enabled": true,
+    "service": "usersummary-service",
+    "operation": "GET /usersummary-service/v2/dailysummaries",
+    "description": "Get user daily summaries for a date range, up to a maximum of 1 year. For a single day, use the same startDate and endDate. Maximum range: 366 days, inclusive.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "startDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "First calendar date of the range (YYYY-MM-DD), inclusive."
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Last calendar date of the range (YYYY-MM-DD), inclusive."
+        }
+      },
+      "required": [
+        "startDate",
+        "endDate"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_weight_entries",
+    "title": "All weight entries",
+    "enabled": true,
+    "service": "weight-service",
+    "operation": "GET /weight-service/weight/all/{startDate}/{endDate}",
+    "description": "Retrieve all weight entries for a specified date range. Prefer get_weight_measurements when daily values or the range average are enough.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "startDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "The start date(user's local calendar) of the range, inclusive. Format yyyy-MM-dd."
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "The end date(user's local calendar) of the range, inclusive. Format yyyy-MM-dd."
+        }
+      },
+      "required": [
+        "startDate",
+        "endDate"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_weight_measurements",
+    "title": "Weight summaries",
+    "enabled": true,
+    "service": "weight-service",
+    "operation": "GET /weight-service/weight/range/{startDate}/{endDate}",
+    "description": "Retrieve weight summaries for a date range, including daily latest weights, the range average, and adjacent weights.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "startDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "The start date(user's local calendar) of the range, inclusive. Format yyyy-MM-dd."
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "The end date(user's local calendar) of the range, inclusive. Format yyyy-MM-dd."
+        },
+        "includeAll": {
+          "type": "boolean",
+          "description": "If true, include all weight entries for each day in the range. If false, only include the latest weight entry for each day.",
+          "default": false
+        }
+      },
+      "required": [
+        "startDate",
+        "endDate"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_daily_body_battery",
+    "title": "Daily Body Battery",
+    "enabled": true,
+    "service": "wellness-service",
+    "operation": "GET /wellness-service/wellness/bodyBattery/reports/daily",
+    "description": "Returns daily Body Battery reports for a date range, up to a maximum of 31 days. Maximum range: 31 days, inclusive.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "startDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "First calendar date of the range (YYYY-MM-DD), inclusive."
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Last calendar date of the range (YYYY-MM-DD), inclusive."
+        },
+        "chunks": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Number of time intervals each day is divided into; the response includes the lowest and highest Body Battery readings from each interval."
+        }
+      },
+      "required": [
+        "startDate",
+        "endDate"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_daily_spo2",
+    "title": "Daily SpO2",
+    "enabled": true,
+    "service": "wellness-service",
+    "operation": "GET /wellness-service/wellness/daily/spo2acclimation/{calendarDate}",
+    "description": "Returns blood oxygen saturation (SpO2) readings and altitude acclimation data for a calendar date.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "calendarDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Calendar date (YYYY-MM-DD)."
+        }
+      },
+      "required": [
+        "calendarDate"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_daily_heart_rate",
+    "title": "Daily heart rate",
+    "enabled": true,
+    "service": "wellness-service",
+    "operation": "GET /wellness-service/wellness/dailyHeartRate",
+    "description": "Returns heart rate data for a calendar date, including resting heart rate and the intraday readings.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Calendar date (YYYY-MM-DD)."
+        }
+      },
+      "required": [
+        "date"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_wellness_activity_summaries",
+    "title": "Wellness activity summaries",
+    "enabled": true,
+    "service": "wellnessactivity-service",
+    "operation": "GET /wellnessactivity-service/activity/summary/range/{fromDate}/{untilDate}",
+    "description": "Returns a list of wellness activity summaries for the given date range. The fromDate and untilDate are inclusive.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "fromDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "First calendar date of the range (YYYY-MM-DD), inclusive."
+        },
+        "untilDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Last calendar date of the range (YYYY-MM-DD), inclusive."
+        }
+      },
+      "required": [
+        "fromDate",
+        "untilDate"
+      ],
+      "additionalProperties": false
+    }
+  }
+]
