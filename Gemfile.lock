@@ -35,6 +35,7 @@ GEM
       fiber-annotation
       fiber-local (~> 1.1)
       json
+    drb (2.2.3)
     falcon (0.57.0)
       async
       async-container (~> 0.20)
@@ -70,7 +71,9 @@ GEM
       bake
     mcp (1.8.1)
       json_schemer (>= 2.4)
-    minitest (5.27.0)
+    minitest (6.0.6)
+      drb (~> 2.0)
+      prism (~> 1.5)
     openssl (4.0.2)
     parallel (2.3.0)
     parser (3.3.13.0)
@@ -137,7 +140,7 @@ DEPENDENCIES
   async-http (~> 0.105)
   falcon (~> 0.57)
   mcp (~> 1.8)
-  minitest (~> 5.25)
+  minitest (~> 6.0)
   rake (~> 13.3)
   rubocop (~> 1.81)
   rubocop-minitest
@@ -155,6 +158,7 @@ CHECKSUMS
   bake (0.25.0) sha256=a47bdc6a26addc048827debc36fe27bb4d5d71ac2958ad910b5386e9baf49869
   bigdecimal (4.1.3) sha256=61ebe1e5e559bdc3cc6f2c0ee7f427321fc838f59611c294356eb04d6e21cf66
   console (1.38.0) sha256=35b82f59130e95e9be6b832d9e539c8b3988fc192e4a8e9a86ab4922f44ad5de
+  drb (2.2.3) sha256=0b00d6fdb50995fe4a45dea13663493c841112e4068656854646f418fda13373
   falcon (0.57.0) sha256=c9b060bc23a3b90a80376078aae037d8f48e0b2f12f5f30f360d4b29d7baf0f7
   fiber-annotation (0.2.0) sha256=7abfadf1d119f508867d4103bf231c0354d019cc39a5738945dec2edadaf6c03
   fiber-local (1.1.0) sha256=c885f94f210fb9b05737de65d511136ea602e00c5105953748aa0f8793489f06
@@ -169,7 +173,7 @@ CHECKSUMS
   lint_roller (1.1.0) sha256=2c0c845b632a7d172cb849cc90c1bce937a28c5c8ccccb50dfd46a485003cc87
   localhost (1.8.0) sha256=df7ea825b4f64949c588c17efac86bc47ddc4460d723778abe933b71759b2701
   mcp (1.8.1) sha256=1b81902c1edf01775a4bc080af68e84909e2dfe91fffe381f86e5075847ca284
-  minitest (5.27.0) sha256=2d3b17f8a36fe7801c1adcffdbc38233b938eb0b4966e97a6739055a45fa77d5
+  minitest (6.0.6) sha256=153ea36d1d987a62942382b61075745042a2b3123b1cd48f4c3675af9cc7d6f1
   openssl (4.0.2) sha256=1037ad2868ae58df9ad917891c0c0f9815a1172f6846d4bcdd508e4c2ee747c2
   parallel (2.3.0) sha256=f75a3e904101ce6a1ccb6b8dc800cbafd42166d83330192438dcf29395167a6f
   parser (3.3.13.0) sha256=e02f9b63c2fe05b0c68f692ba4df89b3cb113b663964f75d988fbebfd6c3deca
