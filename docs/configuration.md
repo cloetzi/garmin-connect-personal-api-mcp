@@ -31,7 +31,7 @@ The stdio transport never uses MCP authentication: it only talks to the process 
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `GARMIN_MCP_HOST` | `127.0.0.1` (image: `0.0.0.0`) | Address to listen on. The image's health check probes this address, or loopback (`127.0.0.1` or `::1`) when it is `0.0.0.0` or `::`. |
+| `GARMIN_MCP_HOST` | `127.0.0.1` (image: `0.0.0.0`) | Address to listen on: an IP address or host name. An IPv6 address can be written with or without brackets (`::1` or `[::1]`). The image's health check probes this address, or loopback (`127.0.0.1` or `::1`) when it is `0.0.0.0` or `::`. |
 | `GARMIN_MCP_PORT` | `8080` | Port to listen on. |
 | `GARMIN_MCP_PATH` | `/mcp` | Path of the MCP endpoint. `/healthz` is always served for health checks, so it cannot be used. |
 | `GARMIN_MCP_ALLOWED_HOSTS` | | Comma-separated `Host` header values accepted in addition to `localhost`, `127.0.0.1` and `::1`. Entries are a host name (any port) or `host:port` (an IPv6 address without brackets matches any port). `*` accepts any host and disables only this check: `Origin` is still validated. |

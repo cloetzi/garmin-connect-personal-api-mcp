@@ -17,8 +17,7 @@ class ConfigTest < Minitest::Test
     config = config()
 
     assert_equal "https://personal.connectapi.garmin.com", config.base_url
-    assert_equal "127.0.0.1", config.host
-    assert_equal 8080, config.port
+    assert_equal GarminMcp::ListenAddress.new(host: "127.0.0.1", port: 8080), config.listen_address
     assert_equal "/mcp", config.path
     assert_equal [TestHelpers::AUTH_TOKEN], config.auth_tokens
     refute config.auth_disabled
@@ -138,15 +137,11 @@ class ConfigTest < Minitest::Test
     assert_equal "/healthz/mcp", config(GARMIN_MCP_PATH: "/healthz/mcp").path
   end
 
-  def test_listen_address_needs_no_secrets
-    assert_equal ["127.0.0.1", 8080], Config.listen_address({})
-    assert_equal ["::", 9000], Config.listen_address({ "GARMIN_MCP_HOST" => " :: ", "GARMIN_MCP_PORT" => "9000" })
-  end
-
-  def test_listen_address_is_validated_like_the_server
-    error = assert_raises(Config::Error) { Config.listen_address({ "GARMIN_MCP_PORT" => "0" }) }
-
-    assert_match(/GARMIN_MCP_PORT must be between 1 and 65535/, error.message)
+  def test_listen_address
+    assert_equal GarminMcp::ListenAddress.new(host: "::1", port: 9000),
+                 config(GARMIN_MCP_HOST: "[::1]", GARMIN_MCP_PORT: "9000").listen_address
+    assert_config_error(/GARMIN_MCP_HOST must be an IP address or host name/, GARMIN_MCP_HOST: "http://0.0.0.0")
+    assert_config_error(/GARMIN_MCP_PORT must be between 1 and 65535/, GARMIN_MCP_PORT: "0")
   end
 
   def test_lists

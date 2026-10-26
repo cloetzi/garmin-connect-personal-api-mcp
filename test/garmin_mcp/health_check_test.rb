@@ -18,23 +18,30 @@ class HealthCheckTest < Minitest::Test
     end
   end
 
-  def test_target_follows_the_server_configuration
-    assert_equal ["127.0.0.1", 8080], HealthCheck.target({})
-    assert_equal ["172.20.0.5", 9000], HealthCheck.target({ "GARMIN_MCP_HOST" => "172.20.0.5", "GARMIN_MCP_PORT" => "9000" })
-    assert_equal ["::1", 8080], HealthCheck.target({ "GARMIN_MCP_HOST" => "::" })
+  def test_url_follows_the_server_configuration
+    assert_equal "http://127.0.0.1:8080/healthz", HealthCheck.url({})
+    assert_equal "http://172.20.0.5:9000/healthz", HealthCheck.url({ "GARMIN_MCP_HOST" => "172.20.0.5", "GARMIN_MCP_PORT" => "9000" })
+    assert_equal "http://[::1]:8080/healthz", HealthCheck.url({ "GARMIN_MCP_HOST" => "::" })
+    assert_equal "http://[fd00::5]:8080/healthz", HealthCheck.url({ "GARMIN_MCP_HOST" => "[fd00::5]" })
   end
 
-  # Probes a real IPv6 listener the way bin/healthcheck does; Net::HTTP brackets the address in the Host header.
+  def test_needs_no_secrets_but_validates_the_listen_address
+    error = assert_raises(GarminMcp::Config::Error) { HealthCheck.url({ "GARMIN_MCP_PORT" => "0" }) }
+
+    assert_match(/GARMIN_MCP_PORT must be between 1 and 65535/, error.message)
+  end
+
+  # Probes a real IPv6 listener the way bin/healthcheck does, checking the address is bracketed once in the Host header.
   def test_probes_an_ipv6_listener
     server = TCPServer.new("::1", 0)
-    host, port = HealthCheck.target({ "GARMIN_MCP_HOST" => "::", "GARMIN_MCP_PORT" => server.addr[1].to_s })
+    uri = URI(HealthCheck.url({ "GARMIN_MCP_HOST" => "::", "GARMIN_MCP_PORT" => server.addr[1].to_s }))
 
     Sync do |task|
       request = task.async { respond_ok(server.accept) }
-      response = Net::HTTP.start(host, port, open_timeout: 2, read_timeout: 2) { |http| http.get(HealthCheck::PATH) }
+      response = Net::HTTP.start(uri.hostname, uri.port, open_timeout: 2, read_timeout: 2) { |http| http.get(uri.path) }
 
       assert_instance_of Net::HTTPOK, response
-      assert_match(%r{\AGET /healthz HTTP/1.1\r\n.*^host: \[::1\]:#{port}\r$}im, request.wait)
+      assert_match(%r{\AGET /healthz HTTP/1.1\r\n.*^host: \[::1\]:#{uri.port}\r$}im, request.wait)
     end
   rescue Errno::EADDRNOTAVAIL, Errno::EAFNOSUPPORT
     skip "no IPv6 loopback"
