@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "json"
-require_relative "../garmin_mcp"
 
 module GarminMcp
   # Entry point for bin/garmin-mcp.
@@ -44,7 +43,7 @@ module GarminMcp
     def serve_http
       require "falcon"
 
-      app = Application.new(Config.from_env(transport: :http))
+      app = boot(:http)
       config = app.config
       warn_insecure(app)
       host = config.host.include?(":") ? "[#{config.host}]" : config.host
@@ -62,20 +61,26 @@ module GarminMcp
     end
 
     def serve_stdio
-      app = Application.new(Config.from_env(transport: :stdio))
+      app = boot(:stdio)
       transport = MCP::Server::Transports::StdioTransport.new(app.mcp_server)
       app.logger.info("stdio_ready", tools: app.tools.size)
       with_shutdown(app) { Sync { transport.open } }
     end
 
     def check_config
-      app = Application.new(Config.from_env(transport: ENV["GARMIN_MCP_TRANSPORT"] == "stdio" ? :stdio : :http))
+      app = boot(ENV["GARMIN_MCP_TRANSPORT"] == "stdio" ? :stdio : :http)
       puts "Configuration OK: #{app.tools.size} tools enabled (#{app.tools.map(&:name).join(", ")})"
       puts "MCP authentication: #{app.config.auth_disabled ? "DISABLED" : "bearer token"}"
     end
 
     def print_tools
       puts JSON.pretty_generate(Application.catalog(overrides_file: ENV.fetch("GARMIN_MCP_OVERRIDES_FILE", nil)).manifest)
+    end
+
+    # Load all code up front so nothing autoloads inside request fibers and load errors surface at startup.
+    def boot(transport)
+      Zeitwerk::Loader.eager_load_namespace(GarminMcp)
+      Application.new(Config.from_env(transport:))
     end
 
     def warn_insecure(app)

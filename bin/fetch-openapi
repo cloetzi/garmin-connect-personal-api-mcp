@@ -6,7 +6,8 @@
 #
 # Usage: bin/fetch-openapi [--output PATH]
 
-require_relative "../lib/garmin_mcp/openapi/extractor"
+require "bundler/setup"
+require_relative "../lib/garmin_mcp"
 
 output = File.expand_path("../data/openapi.json", __dir__)
 output = ARGV[ARGV.index("--output") + 1] if ARGV.include?("--output")

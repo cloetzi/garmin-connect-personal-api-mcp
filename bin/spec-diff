@@ -8,9 +8,10 @@
 #   bin/spec-diff OLD.json        # OLD.json vs. the working copy
 #   bin/spec-diff OLD.json NEW.json
 
+require "bundler/setup"
 require "json"
 require "open3"
-require_relative "../lib/garmin_mcp/openapi/diff"
+require_relative "../lib/garmin_mcp"
 
 current = File.expand_path("../data/openapi.json", __dir__)
 

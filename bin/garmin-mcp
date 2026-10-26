@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "bundler/setup"
-require_relative "../lib/garmin_mcp/cli"
+require_relative "../lib/garmin_mcp"
 
 Warning[:experimental] = false # io-event uses IO::Buffer under the fiber scheduler
 $stdout.sync = true

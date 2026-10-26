@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require_relative "../test_helper"
-require_relative "../../lib/garmin_mcp/openapi/diff"
 
 class DiffTest < Minitest::Test
   def document = @document ||= JSON.parse(File.read(GarminMcp::Application::SPEC_PATH))

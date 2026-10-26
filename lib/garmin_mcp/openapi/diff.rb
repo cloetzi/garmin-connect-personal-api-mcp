@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative "spec"
-
 module GarminMcp
   module OpenAPI
     # Human-readable summary of what changed between two versions of the spec, focused on what
