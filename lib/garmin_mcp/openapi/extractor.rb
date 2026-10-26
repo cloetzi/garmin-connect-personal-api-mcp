@@ -10,7 +10,7 @@ module GarminMcp
     # page component bundles the spec as a `JSON.parse('...')` string literal. This class finds that
     # bundle and decodes the literal. Only used by `bin/fetch-openapi`; the server never fetches the spec.
     class Extractor
-      class Error < StandardError; end
+      class Error < GarminMcp::Error; end
 
       PAGE_URL = "https://developer.garmin.com/gc-developer-program/personal/swagger-docs/"
       EXPECTED_SERVER = "https://personal.connectapi.garmin.com"
