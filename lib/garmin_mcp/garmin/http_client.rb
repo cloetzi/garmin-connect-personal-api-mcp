@@ -8,19 +8,6 @@ require "time"
 
 module GarminMcp
   module Garmin
-    class Error < GarminMcp::Error; end
-
-    # The key exchange was rejected; the key is wrong, expired or revoked.
-    class AuthenticationError < Error; end
-
-    # Garmin could not be reached or did not answer in time.
-    class TransportError < Error; end
-
-    Response = Data.define(:status, :content_type, :body, :retry_after) do
-      def success? = (200..299).cover?(status)
-      def json? = content_type.to_s.include?("json")
-    end
-
     # Fiber-based HTTP client for the Garmin host: persistent connections, bounded concurrency,
     # an overall deadline per attempt, a response size cap, and bounded retries on transient failures.
     class HttpClient

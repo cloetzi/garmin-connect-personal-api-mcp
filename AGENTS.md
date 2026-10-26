@@ -16,7 +16,7 @@ Users run it from the Docker image published to GHCR. One server serves one Garm
 - `lib/garmin_mcp/`
   - `openapi/`: spec model (`spec.rb`), extraction from the JS bundle (`extractor.rb`), change summary (`diff.rb`)
   - `overrides.rb`, `catalog.rb`, `tool_definition.rb`: spec + overrides into tool definitions and Garmin requests
-  - `garmin/`: fiber-based HTTP client, API-key-to-token exchange, authenticated client
+  - `garmin.rb`, `garmin/`: Garmin errors, fiber-based HTTP client, API-key-to-token exchange, authenticated client
   - `tool_runner.rb`: executes tool calls and shapes responses for the model
   - `config.rb`, `http_app.rb`, `static_token_verifier.rb`, `application.rb`, `cli.rb`: wiring and transports
 - `bin/`: `garmin-mcp` (server CLI), `fetch-openapi`, `spec-diff`, `healthcheck`, `docker-smoke-test`
@@ -47,6 +47,9 @@ Use the `sync-garmin-openapi` skill (`.claude/skills/sync-garmin-openapi/SKILL.m
 - **Logs go to stderr**; stdout is the stdio transport's protocol channel.
 - **Style.** Follow the surrounding code: small classes, `Data` value objects, endless methods for one-liners,
   comments only where intent is not obvious. RuboCop is the arbiter.
+- **Loading.** Zeitwerk autoloads `lib/` (set up in `lib/garmin_mcp.rb`): one top-level constant per file, named after its
+  path (`openapi` is inflected to `OpenAPI`, `cli` to `CLI`). Never `require_relative` files under `lib/`; scripts
+  require `lib/garmin_mcp`. Servers eager-load at startup, and `test/garmin_mcp/loader_test.rb` checks the naming.
 - **Dependencies.** Keep them minimal; the image should stay small. Ask before adding a gem.
 - **Commits.** Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`, `ci:`, `refactor:`, `test:`); PR titles are
   checked and drive release-please. Do not edit `CHANGELOG.md` or the version by hand.

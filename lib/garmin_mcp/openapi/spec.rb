@@ -4,15 +4,6 @@ require "json"
 
 module GarminMcp
   module OpenAPI
-    Parameter = Data.define(:name, :location, :required, :description, :schema)
-
-    Operation = Data.define(:http_method, :path, :tags, :summary, :description, :parameters, :response_types) do
-      # Stable identity used by overrides; Garmin's spec has no operationIds.
-      def key = "#{http_method.upcase} #{path}"
-
-      def parameter(name) = parameters.find { |param| param.name == name }
-    end
-
     # Read-only view of the vendored OpenAPI document, reduced to what tool generation needs.
     class Spec
       HTTP_METHODS = %w[get put post patch delete].freeze
