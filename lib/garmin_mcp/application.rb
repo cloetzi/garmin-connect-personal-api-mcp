@@ -48,7 +48,7 @@ module GarminMcp
         instructions: catalog.instructions,
         tools: tools.map { |definition| runner.mcp_tool(definition) },
         capabilities: { tools: {} },
-        configuration: MCP::Configuration.new(exception_reporter: method(:report_exception))
+        configuration: MCP::Configuration.new(exception_reporter: ExceptionReporter.new(logger))
       )
     end
 
@@ -59,9 +59,5 @@ module GarminMcp
     private
 
     def tokens = @tokens ||= Garmin::TokenProvider.new(http:, api_key: config.api_key, logger:)
-
-    def report_exception(exception, _context)
-      logger.error("unhandled_exception", error: exception.class.name, message: exception.message.to_s[0, 200])
-    end
   end
 end
