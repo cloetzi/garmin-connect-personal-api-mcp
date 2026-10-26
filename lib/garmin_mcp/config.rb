@@ -23,19 +23,20 @@ module GarminMcp
     attr_reader(*ATTRIBUTES)
 
     # transport: :http requires MCP authentication settings; :stdio ignores them.
-    def self.from_env(env = ENV, transport: :http) = new(env, transport).freeze
+    # credentials: false skips the Garmin API key and MCP tokens, for commands that never serve or call Garmin.
+    def self.from_env(env = ENV, transport: :http, credentials: true) = new(env, transport, credentials).freeze
 
     # [host, port] of the HTTP listener, parsed as for the server but without reading secrets or any other setting,
     # so the container health check stays cheap. Raises Error when either is invalid.
     def self.listen_address(env = ENV) = allocate.send(:read_listen_address, env)
 
-    def initialize(env, transport) # rubocop:disable Metrics/AbcSize -- one assignment per setting
+    def initialize(env, transport, credentials) # rubocop:disable Metrics/AbcSize -- one assignment per setting
       @env = env
       @errors = []
-      @api_key = secret("GARMIN_PERSONAL_API_KEY", required: true)
+      @api_key = credentials ? secret("GARMIN_PERSONAL_API_KEY", required: true) : nil
       @base_url = base_url_value
       @auth_disabled = boolean("GARMIN_MCP_AUTH_DISABLED", false)
-      @auth_tokens = transport == :http ? auth_tokens_value : []
+      @auth_tokens = credentials && transport == :http ? auth_tokens_value : []
       @host, @port = listen_address_value
       @path = path_value
       @allowed_hosts = list("GARMIN_MCP_ALLOWED_HOSTS")
