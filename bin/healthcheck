@@ -15,8 +15,8 @@ rescue SystemCallError
 end
 
 begin
-  host, port = GarminMcp::HealthCheck.target
-  response = Net::HTTP.start(host, port, open_timeout: 2, read_timeout: 2) { |http| http.get(GarminMcp::HealthCheck::PATH) }
+  uri = URI(GarminMcp::HealthCheck.url)
+  response = Net::HTTP.start(uri.hostname, uri.port, open_timeout: 2, read_timeout: 2) { |http| http.get(uri.path) }
   exit(response.is_a?(Net::HTTPOK) ? 0 : 1)
 rescue StandardError => e
   # Shown by `docker inspect`. Connection and configuration errors name addresses and settings, never secrets.

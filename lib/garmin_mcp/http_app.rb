@@ -4,7 +4,7 @@ require "json"
 require "mcp"
 
 module GarminMcp
-  # Rack application: an unauthenticated liveness probe at /healthz and the MCP endpoint, which runs the
+  # Rack application: an unauthenticated liveness probe at HealthCheck::PATH and the MCP endpoint, which runs the
   # SDK's Streamable HTTP transport in stateless JSON mode (no sessions, no server-held streams).
   class HttpApp
     MAX_REQUEST_BYTES = 1024 * 1024
@@ -61,7 +61,7 @@ module GarminMcp
 
     def log(env, status, started)
       duration_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started) * 1000).round
-      level = env["PATH_INFO"] == "/healthz" ? :debug : :info
+      level = env["PATH_INFO"] == HealthCheck::PATH ? :debug : :info
       @logger.public_send(level, "http_request", method: env["REQUEST_METHOD"], path: env["PATH_INFO"], status:, duration_ms:)
     end
   end

@@ -47,14 +47,13 @@ module GarminMcp
       app = boot(:http)
       config = app.config
       warn_insecure(app)
-      host = config.host.include?(":") ? "[#{config.host}]" : config.host
-      endpoint = Async::HTTP::Endpoint.parse("http://#{host}:#{config.port}")
+      endpoint = Async::HTTP::Endpoint.parse(config.listen_address.url)
       middleware = Falcon::Server.rack_middleware(app.rack_app, cache: false)
 
       with_shutdown(app) do
         Sync do
           task = Falcon::Server.new(middleware, endpoint).run
-          app.logger.info("listening", url: "http://#{host}:#{config.port}#{config.path}", tools: app.tools.size,
+          app.logger.info("listening", url: config.listen_address.url(config.path), tools: app.tools.size,
                                        auth: config.auth_disabled ? "disabled" : "bearer")
           task.wait
         end

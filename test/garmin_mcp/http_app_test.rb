@@ -87,6 +87,18 @@ class HttpAppTest < Minitest::Test
     end
   end
 
+  def test_health_checks_are_logged_only_at_debug
+    with_fake_garmin do |fake|
+      io = StringIO.new
+      app = app(fake, logger: GarminMcp::Logger.new(io:, level: "info"))
+      app.get("/healthz")
+      app.get("/missing")
+
+      refute_includes io.string, "path=/healthz"
+      assert_includes io.string, "path=/missing"
+    end
+  end
+
   def test_initialize_advertises_tools_and_instructions
     with_fake_garmin do |fake|
       init = result(rpc(app(fake), "initialize", { protocolVersion: "2025-11-25", capabilities: {}, clientInfo: { name: "test", version: "1" } }))
