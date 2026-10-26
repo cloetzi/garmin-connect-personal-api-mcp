@@ -9,9 +9,9 @@ health and fitness data through Garmin's official
 sleep, HRV, heart rate, stress, Body Battery, steps, activities, weight, nutrition and more.
 
 > [!WARNING]
-> **Internal use only, for now.** This project is not yet intended for general use; expect breaking changes and
-> no support. It was also generated entirely by AI (Anthropic's Claude, via Claude Code). Review the code and
-> configuration yourself before trusting it with your Garmin API key and health data.
+> **Built for homelab use.** Run it on your own machine or home network, or reach it through a VPN; do not expose
+> it directly to the internet. It was also generated entirely by AI (Anthropic's Claude, via Claude Code), so
+> review the code and configuration yourself before trusting it with your Garmin API key and health data.
 
 - **Official API only.** Uses your personal API key, no username/password scraping.
 - **Read-only.** Every Garmin endpoint it exposes is a `GET`; it cannot change anything in your account.
