@@ -105,4 +105,4 @@ data returned by Garmin.
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `GARMIN_PERSONAL_API_BASE_URL` | `https://personal.connectapi.garmin.com` | Garmin API base URL. Must be `https`; plain `http` is accepted only for loopback addresses (local test servers). |
+| `GARMIN_PERSONAL_API_BASE_URL` | `https://personal.connectapi.garmin.com` | Where Garmin requests, including your API key, are sent. Only for pointing the server at a local fake Garmin API in tests: the only accepted values are the default and an `http` or `https` URL whose host is a loopback IP address (`127.0.0.0/8` or `[::1]`), with an optional port and no path, credentials or query, such as `http://127.0.0.1:9292`. Hostnames, including `localhost`, are rejected. The server logs a `non_default_garmin_base_url` warning at startup whenever it is set to anything but the default. |
