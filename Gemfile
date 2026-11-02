@@ -12,7 +12,7 @@ gem "zeitwerk", "~> 2.8"
 group :development, :test do
   gem "minitest", "~> 6.0"
   gem "rake", "~> 13.3"
-  gem "rubocop", "~> 1.81", require: false
+  gem "rubocop", "~> 1.92", require: false
   gem "rubocop-minitest", require: false
   gem "rubocop-rake", require: false
 end
