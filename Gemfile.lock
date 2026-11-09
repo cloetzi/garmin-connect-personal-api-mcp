@@ -69,7 +69,7 @@ GEM
     lint_roller (1.1.0)
     localhost (1.8.0)
       bake
-    mcp (1.8.2)
+    mcp (1.9.0)
       json_schemer (>= 2.4)
     minitest (6.0.6)
       drb (~> 2.0)
@@ -140,7 +140,7 @@ PLATFORMS
 DEPENDENCIES
   async-http (~> 0.105)
   falcon (~> 0.57)
-  mcp (~> 1.8)
+  mcp (~> 1.9)
   minitest (~> 6.0)
   rake (~> 13.3)
   rubocop (~> 1.92)
@@ -174,7 +174,7 @@ CHECKSUMS
   language_server-protocol (3.17.0.6) sha256=5ef2c0c138f8267e1bc631d3328347d354f96724b0af22f2c79516120443b7f0
   lint_roller (1.1.0) sha256=2c0c845b632a7d172cb849cc90c1bce937a28c5c8ccccb50dfd46a485003cc87
   localhost (1.8.0) sha256=df7ea825b4f64949c588c17efac86bc47ddc4460d723778abe933b71759b2701
-  mcp (1.8.2) sha256=59843aaceb060260bfcf38692d1c99ec497eefc039a6174237f53a59ee71d323
+  mcp (1.9.0) sha256=e4dd0f09ad972abde2cdd8d5b8d828f62fe999ba0e20ce2ab3ae1fbf4662f295
   minitest (6.0.6) sha256=153ea36d1d987a62942382b61075745042a2b3123b1cd48f4c3675af9cc7d6f1
   openssl (4.0.2) sha256=1037ad2868ae58df9ad917891c0c0f9815a1172f6846d4bcdd508e4c2ee747c2
   parallel (2.3.0) sha256=f75a3e904101ce6a1ccb6b8dc800cbafd42166d83330192438dcf29395167a6f
