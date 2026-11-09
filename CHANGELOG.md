@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.1](https://github.com/cloetzi/garmin-connect-personal-api-mcp/compare/v0.1.0...v0.1.1) (2026-11-09)
+
+
+### Bug Fixes
+
+* **deps:** Bump mcp from 1.8.1 to 1.8.2 in the runtime group ([#19](https://github.com/cloetzi/garmin-connect-personal-api-mcp/issues/19)) ([272a4d1](https://github.com/cloetzi/garmin-connect-personal-api-mcp/commit/272a4d16e3beaf7916ba913cb7a5364130147888))
+* **deps:** Bump ruby from `d0c5bef` to `f1e5307` ([#20](https://github.com/cloetzi/garmin-connect-personal-api-mcp/issues/20)) ([a71714d](https://github.com/cloetzi/garmin-connect-personal-api-mcp/commit/a71714d58935179a4e061e272f71b0b3afeb6e71))
+
 ## 0.1.0 (2026-10-26)
 
 
