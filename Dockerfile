@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Base images are pinned by digest; Dependabot keeps tag and digest current.
-FROM ruby:4.0.9-alpine3.24@sha256:f1e530793cc09e1093417a4c9956069407155e1883d02beb30bda35ae54a47a3 AS build
+FROM ruby:4.0.9-alpine3.24@sha256:8ad6909db16ad53b5dc90bb8cc157e5fdd89ba1172798316b95cfd2a61f14b1e AS build
 
 RUN apk add --no-cache build-base openssl-dev yaml-dev
 
@@ -20,7 +20,7 @@ COPY bin/garmin-mcp bin/healthcheck bin/
 COPY lib lib
 COPY data data
 
-FROM ruby:4.0.9-alpine3.24@sha256:f1e530793cc09e1093417a4c9956069407155e1883d02beb30bda35ae54a47a3
+FROM ruby:4.0.9-alpine3.24@sha256:8ad6909db16ad53b5dc90bb8cc157e5fdd89ba1172798316b95cfd2a61f14b1e
 
 ARG VERSION=dev
 LABEL org.opencontainers.image.title="garmin-connect-personal-api-mcp" \
