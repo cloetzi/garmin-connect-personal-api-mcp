@@ -6,7 +6,7 @@ ruby file: ".ruby-version"
 
 gem "async-http", "~> 0.105"
 gem "falcon", "~> 0.57"
-gem "mcp", "~> 1.8"
+gem "mcp", "~> 1.9"
 gem "zeitwerk", "~> 2.8"
 
 group :development, :test do
