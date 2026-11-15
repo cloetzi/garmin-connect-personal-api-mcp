@@ -1,0 +1,47 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":semanticCommits"],
+  "enabledManagers": ["bundler", "dockerfile", "github-actions"],
+  "schedule": ["* 0-3 * * 1"],
+  "packageRules": [
+    {
+      "description": "Gems ship in the released image: fix(deps)",
+      "matchManagers": ["bundler"],
+      "semanticCommitType": "fix",
+      "semanticCommitScope": "deps"
+    },
+    {
+      "description": "Group minor and patch gem updates; majors get their own PR",
+      "matchManagers": ["bundler"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "runtime"
+    },
+    {
+      "description": "Development and test gems: chore(deps-dev), all updates grouped",
+      "matchManagers": ["bundler"],
+      "matchDepTypes": ["development", "test"],
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "deps-dev",
+      "groupName": "development"
+    },
+    {
+      "description": "Base images ship in the released image: fix(deps)",
+      "matchManagers": ["dockerfile"],
+      "semanticCommitType": "fix",
+      "semanticCommitScope": "deps"
+    },
+    {
+      "description": "Workflow actions: ci(deps), all updates grouped",
+      "matchManagers": ["github-actions"],
+      "semanticCommitType": "ci",
+      "semanticCommitScope": "deps",
+      "groupName": "actions"
+    },
+    {
+      "description": "Leave runs-on runner images alone, as Dependabot did",
+      "matchManagers": ["github-actions"],
+      "matchDepTypes": ["github-runner"],
+      "enabled": false
+    }
+  ]
+}
