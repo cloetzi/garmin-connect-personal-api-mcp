@@ -36,6 +36,12 @@
       "semanticCommitType": "ci",
       "semanticCommitScope": "deps",
       "groupName": "actions"
+    },
+    {
+      "description": "Leave runs-on runner images alone, as Dependabot did",
+      "matchManagers": ["github-actions"],
+      "matchDepTypes": ["github-runner"],
+      "enabled": false
     }
   ]
 }
