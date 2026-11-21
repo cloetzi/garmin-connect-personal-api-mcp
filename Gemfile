@@ -2,7 +2,9 @@
 
 source "https://rubygems.org"
 
-ruby file: ".ruby-version"
+# .ruby-version and the Dockerfile pin the exact Ruby. An exact pin here makes frozen
+# `bundle install` fail on every Ruby bump until Gemfile.lock is regenerated.
+ruby "~> 4.0"
 
 gem "async-http", "~> 0.105"
 gem "falcon", "~> 0.57"
