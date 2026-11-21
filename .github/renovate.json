@@ -1,7 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended", ":semanticCommits"],
-  "enabledManagers": ["bundler", "dockerfile", "github-actions"],
+  "enabledManagers": ["bundler", "dockerfile", "github-actions", "ruby-version"],
   "schedule": ["* 0-3 * * 1"],
   "packageRules": [
     {
@@ -29,6 +29,14 @@
       "matchManagers": ["dockerfile"],
       "semanticCommitType": "fix",
       "semanticCommitScope": "deps"
+    },
+    {
+      "description": "Bump Ruby in .ruby-version and the base images in one PR, so CI tests the new Ruby too",
+      "matchManagers": ["dockerfile", "ruby-version"],
+      "matchDepNames": ["ruby"],
+      "semanticCommitType": "fix",
+      "semanticCommitScope": "deps",
+      "groupName": "ruby"
     },
     {
       "description": "Workflow actions: ci(deps), all updates grouped",
