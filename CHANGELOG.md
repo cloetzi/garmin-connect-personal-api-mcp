@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/cloetzi/garmin-connect-personal-api-mcp/compare/v0.1.2...v0.1.3) (2026-11-21)
+
+
+### Bug Fixes
+
+* **deps:** update dependency mcp to v1.11.0 ([#36](https://github.com/cloetzi/garmin-connect-personal-api-mcp/issues/36)) ([5ec8813](https://github.com/cloetzi/garmin-connect-personal-api-mcp/commit/5ec88135522d78eb68e65bbb07d0489534af460b))
+
 ## [0.1.2](https://github.com/cloetzi/garmin-connect-personal-api-mcp/compare/v0.1.1...v0.1.2) (2026-11-14)
 
 
