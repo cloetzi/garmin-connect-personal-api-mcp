@@ -3,6 +3,8 @@
   "extends": ["config:recommended", ":semanticCommits"],
   "enabledManagers": ["bundler", "dockerfile", "github-actions", "ruby-version"],
   "schedule": ["* 0-3 * * 1"],
+  "prHourlyLimit": 0,
+  "osvVulnerabilityAlerts": true,
   "packageRules": [
     {
       "description": "Gems ship in the released image: fix(deps)",
@@ -31,12 +33,13 @@
       "semanticCommitScope": "deps"
     },
     {
-      "description": "Bump Ruby in .ruby-version and the base images in one PR, so CI tests the new Ruby too",
+      "description": "Bump Ruby in .ruby-version and the base images in one PR, so CI tests the new Ruby too. Often security fixes, so not held for the weekly schedule",
       "matchManagers": ["dockerfile", "ruby-version"],
       "matchDepNames": ["ruby"],
       "semanticCommitType": "fix",
       "semanticCommitScope": "deps",
-      "groupName": "ruby"
+      "groupName": "ruby",
+      "schedule": ["at any time"]
     },
     {
       "description": "Workflow actions: ci(deps), all updates grouped",
