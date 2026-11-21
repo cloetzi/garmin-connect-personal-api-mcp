@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Base images are pinned by digest; Renovate keeps tag and digest current.
-FROM ruby:4.0.9-alpine3.24@sha256:8ad6909db16ad53b5dc90bb8cc157e5fdd89ba1172798316b95cfd2a61f14b1e AS build
+FROM ruby:4.0.9-alpine3.24@sha256:921ad0cc0f6bf76ed48ed6847a4c55a928e920bc7a2f2697aed498942c50ea00 AS build
 
 RUN apk add --no-cache build-base openssl-dev yaml-dev
 
@@ -20,7 +20,7 @@ COPY bin/garmin-mcp bin/healthcheck bin/
 COPY lib lib
 COPY data data
 
-FROM ruby:4.0.9-alpine3.24@sha256:8ad6909db16ad53b5dc90bb8cc157e5fdd89ba1172798316b95cfd2a61f14b1e
+FROM ruby:4.0.9-alpine3.24@sha256:921ad0cc0f6bf76ed48ed6847a4c55a928e920bc7a2f2697aed498942c50ea00
 
 ARG VERSION=dev
 LABEL org.opencontainers.image.title="garmin-connect-personal-api-mcp" \
