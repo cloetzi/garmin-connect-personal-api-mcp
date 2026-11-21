@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/cloetzi/garmin-connect-personal-api-mcp/compare/v0.1.3...v0.1.4) (2026-11-21)
+
+
+### Bug Fixes
+
+* **deps:** update dependency ruby to v4.0.10 ([#39](https://github.com/cloetzi/garmin-connect-personal-api-mcp/issues/39)) ([1e48817](https://github.com/cloetzi/garmin-connect-personal-api-mcp/commit/1e48817c130dda18d63578cb06d3dfe32635f653))
+
 ## [0.1.3](https://github.com/cloetzi/garmin-connect-personal-api-mcp/compare/v0.1.2...v0.1.3) (2026-11-21)
 
 
